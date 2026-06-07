@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 连接测试</title>
+    <!-- 只引入一次 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div style="max-width: 600px; margin: 40px auto; font-family: sans-serif;">
+        <h2>🧪 Supabase 连接测试</h2>
+        
+        <div style="background: #f0f4f8; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+            <p><strong>当前状态：</strong></p>
+            <p id="status" style="color: #666;">正在初始化...</p>
+        </div>
+
+        <button onclick="testInsert()" style="padding: 10px 20px; margin: 4px;">📝 插入测试数据</button>
+        <button onclick="testFetch()" style="padding: 10px 20px; margin: 4px;">📊 读取所有数据</button>
+        <button onclick="testDelete()" style="padding: 10px 20px; margin: 4px;">🗑️ 清空测试表</button>
+
+        <div style="margin-top: 20px;">
+            <h4>📋 操作日志：</h4>
+            <pre id="log" style="background: #1e1e1e; color: #fff; padding: 16px; border-radius: 8px; min-height: 150px; white-space: pre-wrap;"></pre>
+        </div>
+    </div>
+
+    <script>
+        // ================== 替换为你的 Supabase 凭证 ==================
+        const SUPABASE_URL = 'https://bvmvuirjmlsbuefnsvm.supabase.co';   // 注意必须是 https://
+        const SUPABASE_ANON_KEY = 'sb_publishable__J9jNEj_RmSoKegqreOEQw_cGPCozvg';
+        // ============================================================
+
+        // 全局变量，只声明一次
+        let supabase = null;
+
+        // 初始化 Supabase 客户端
+        try {
+            if (SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('your-project-id')) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                logMessage('✅ Supabase 客户端初始化成功');
+                document.getElementById('status').innerHTML = '🟢 已连接到 Supabase';
+            } else {
+                logMessage('❌ 请修改 SUPABASE_URL 为你的真实项目地址（以 https:// 开头）');
+                document.getElementById('status').innerHTML = '🔴 凭证未配置';
+            }
+        } catch (error) {
+            logMessage('❌ 初始化失败: ' + error.message);
+            document.getElementById('status').innerHTML = '🔴 初始化错误';
+        }
+
+        // 日志输出
+        function logMessage(msg) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // 暴露到全局对象，保证按钮 onclick 能找到
+        window.testInsert = async function() {
+            if (!supabase) {
+                logMessage('❌ Supabase 未连接');
+                return;
+            }
+            logMessage('⏳ 正在插入测试数据...');
+            const { error } = await supabase.from('patient_records').insert({
+                patient_name: '测试患者 ' + new Date().toLocaleString(),
+                gender: '男',
+                age: 30,
+                ethnicity: '汉',
+                address: '测试省测试市测试县',
+                phone: '13800138000',
+                check_in_date: '2026-01-01',
+                stay_months: 1,
+                stay_days: 0,
+                stay_duration: '1月0天',
+                occupancy_count: 1,
+                has_infectious_disease: '无',
+                disease_detail: '',
+                diagnosis_image_url: null
+            });
+
+            if (error) {
+                logMessage('❌ 插入失败: ' + error.message);
+                console.error(error);
+            } else {
+                logMessage('✅ 测试数据插入成功！');
+            }
+        };
+
+        window.testFetch = async function() {
+            if (!supabase) {
+                logMessage('❌ Supabase 未连接');
+                return;
+            }
+            logMessage('⏳ 正在查询数据...');
+            const { data, error } = await supabase
+                .from('patient_records')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                logMessage('❌ 查询失败: ' + error.message);
+            } else {
+                logMessage(`✅ 查询成功，共 ${data.length} 条记录`);
+                if (data.length > 0) {
+                    logMessage('最新一条: ' + JSON.stringify(data[0], null, 2));
+                }
+            }
+        };
+
+        window.testDelete = async function() {
+            if (!supabase) {
+                logMessage('❌ Supabase 未连接');
+                return;
+            }
+            if (!confirm('确定要删除 patient_records 表中的所有数据吗？')) return;
+            logMessage('⏳ 正在清空数据...');
+            const { error } = await supabase
+                .from('patient_records')
+                .delete()
+                .neq('id', 0); // 删除所有数据
+
+            if (error) {
+                logMessage('❌ 清空失败: ' + error.message);
+            } else {
+                logMessage('✅ 表已清空');
+            }
+        };
+
+        // 页面加载完成提示
+        logMessage('测试工具已就绪');
+    </script>
+</body>
+</html>
