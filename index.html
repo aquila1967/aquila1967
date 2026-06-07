@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
     <title>患者信息登记系统</title>
-    <!-- 引入轻量二维码生成库 -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
-    </script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 二维码生成库 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             --primary: #4A90D9;
@@ -23,13 +24,7 @@
             --transition: all 0.3s ease;
             --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
             font-family: var(--font-family);
             background: var(--bg);
@@ -42,8 +37,6 @@
             -webkit-tap-highlight-color: transparent;
             -webkit-font-smoothing: antialiased;
         }
-
-        /* ========== 顶部导航 ========== */
         .nav-bar {
             width: 100%;
             max-width: 600px;
@@ -95,8 +88,6 @@
         .nav-link.admin-link:hover {
             color: var(--primary);
         }
-
-        /* ========== 二维码卡片 ========== */
         .qr-card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -116,9 +107,6 @@
             font-size: 1rem;
             font-weight: 600;
             color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
         .qr-card .qr-container {
             display: inline-block;
@@ -126,14 +114,12 @@
             background: #fff;
             border-radius: 12px;
             border: 2px dashed var(--border);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
         }
-        .qr-card .qr-hint {
+        .qr-hint {
             font-size: 0.8rem;
             color: #888;
-            line-height: 1.5;
         }
-        .qr-card .qr-url {
+        .qr-url {
             font-size: 0.8rem;
             color: var(--text-secondary);
             background: #f0f4f8;
@@ -142,8 +128,6 @@
             word-break: break-all;
             max-width: 100%;
         }
-
-        /* ========== 卡片容器 ========== */
         .card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -171,8 +155,6 @@
             font-size: 0.85rem;
             color: var(--text-secondary);
         }
-
-        /* 表单样式（同之前） */
         .form-group {
             margin-bottom: 18px;
             position: relative;
@@ -183,12 +165,10 @@
             font-size: 0.9rem;
             margin-bottom: 6px;
             color: var(--text);
-            letter-spacing: 0.02em;
         }
         .form-label .required {
             color: var(--danger);
             margin-left: 2px;
-            font-weight: 700;
         }
         .form-input,
         .form-select,
@@ -229,7 +209,6 @@
             color: #999;
             margin-top: 4px;
         }
-
         .form-row {
             display: flex;
             gap: 12px;
@@ -247,9 +226,7 @@
             font-size: 1rem;
             color: var(--text-secondary);
             padding-bottom: 14px;
-            font-weight: 500;
         }
-
         .radio-group {
             display: flex;
             gap: 10px;
@@ -285,11 +262,6 @@
             font-weight: 700;
             box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.06);
         }
-        .radio-option label:active {
-            transform: scale(0.96);
-            transition: transform 0.1s;
-        }
-
         .conditional-field {
             overflow: hidden;
             max-height: 0;
@@ -302,7 +274,6 @@
             opacity: 1;
             margin-top: 12px;
         }
-
         .upload-area {
             border: 2px dashed var(--border);
             border-radius: 12px;
@@ -329,7 +300,6 @@
         .upload-text {
             font-size: 0.9rem;
             color: var(--text-secondary);
-            font-weight: 500;
         }
         .upload-preview {
             max-width: 100%;
@@ -347,7 +317,6 @@
             color: var(--danger);
             cursor: pointer;
             font-size: 0.85rem;
-            font-weight: 500;
         }
         .upload-remove.show {
             display: inline-block;
@@ -358,7 +327,6 @@
             opacity: 0;
             cursor: pointer;
         }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -374,8 +342,6 @@
             font-family: var(--font-family);
             letter-spacing: 0.03em;
             width: 100%;
-            position: relative;
-            overflow: hidden;
         }
         .btn-primary {
             background: var(--primary);
@@ -384,26 +350,17 @@
         }
         .btn-primary:hover {
             background: var(--primary-dark);
-            box-shadow: 0 6px 20px rgba(74, 144, 217, 0.4);
             transform: translateY(-1px);
-        }
-        .btn-primary:active {
-            transform: scale(0.97);
-            transition: transform 0.1s;
         }
         .btn-primary:disabled {
             background: #b0cde8;
             cursor: not-allowed;
-            box-shadow: none;
             transform: none;
         }
         .btn-outline {
             background: #fff;
             color: var(--primary);
             border: 2px solid var(--primary);
-        }
-        .btn-outline:hover {
-            background: #eef5fc;
         }
         .btn-sm {
             padding: 8px 16px;
@@ -419,7 +376,6 @@
         .btn-danger:hover {
             background: #fff5f5;
         }
-
         .toast {
             position: fixed;
             top: 20px;
@@ -436,34 +392,17 @@
             max-width: 90vw;
             text-align: center;
         }
-        .toast.success {
-            background: #27ae60;
-        }
-        .toast.error {
-            background: #e74c3c;
-        }
-        .toast.info {
-            background: #2c3e50;
-        }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: #2c3e50; }
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
+            from { opacity:0; transform:translateX(-50%) translateY(-30px); }
+            to { opacity:1; transform:translateX(-50%) translateY(0); }
         }
         @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
+            from { opacity:1; }
+            to { opacity:0; }
         }
-
         .success-icon {
             width: 72px;
             height: 72px;
@@ -477,28 +416,21 @@
         }
         .success-page {
             text-align: center;
+            display: none;
         }
         .success-page h2 {
             color: #27ae60;
             margin-bottom: 8px;
         }
-        .success-page p {
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-        }
-
-        /* 管理后台样式（同之前，略） */
         .admin-hidden {
             display: none !important;
-        }
-        .login-card {
-            max-width: 400px;
         }
         .table-wrapper {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             border-radius: 10px;
             border: 1px solid var(--border);
+            margin-top: 10px;
         }
         table {
             width: 100%;
@@ -506,8 +438,7 @@
             font-size: 0.85rem;
             min-width: 700px;
         }
-        table th,
-        table td {
+        table th, table td {
             padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid #eee;
@@ -516,41 +447,24 @@
         table th {
             background: #f8fafc;
             font-weight: 700;
-            color: var(--text);
             position: sticky;
             top: 0;
             font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
         }
         table tbody tr {
             transition: var(--transition);
             cursor: pointer;
         }
-        table tbody tr:hover {
-            background: #f8fafd;
-        }
+        table tbody tr:hover { background: #f8fafd; }
         .badge {
             display: inline-block;
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
-            letter-spacing: 0.02em;
         }
-        .badge-yes {
-            background: #fff0f0;
-            color: #c0392b;
-        }
-        .badge-no {
-            background: #f0faf4;
-            color: #27ae60;
-        }
-        .record-count {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.1rem;
-        }
+        .badge-yes { background: #fff0f0; color: #c0392b; }
+        .badge-no { background: #f0faf4; color: #27ae60; }
         .detail-modal-overlay {
             position: fixed;
             inset: 0;
@@ -560,15 +474,6 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
         }
         .detail-modal {
             background: #fff;
@@ -578,12 +483,7 @@
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             position: relative;
-        }
-        .detail-modal h3 {
-            margin-bottom: 16px;
-            font-size: 1.2rem;
         }
         .detail-row {
             display: flex;
@@ -597,17 +497,13 @@
             color: var(--text-secondary);
             flex-shrink: 0;
         }
-        .detail-value {
-            flex: 1;
-            color: var(--text);
-        }
+        .detail-value { flex: 1; color: var(--text); }
         .detail-image {
             max-width: 100%;
             max-height: 300px;
             border-radius: 8px;
             margin-top: 8px;
             cursor: pointer;
-            border: 1px solid #eee;
         }
         .modal-close {
             position: absolute;
@@ -626,17 +522,10 @@
             border: none;
             background: transparent;
         }
-        .modal-close:hover {
-            background: #f5f5f5;
-            color: #333;
-        }
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-            align-items: center;
-        }
+        .modal-close:hover { background: #f5f5f5; color: #333; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
+        .empty-state .icon { font-size: 4rem; display: block; margin-bottom: 12px; }
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
         .search-input {
             flex: 1;
             min-width: 180px;
@@ -648,53 +537,17 @@
             transition: var(--transition);
             font-family: var(--font-family);
         }
-        .search-input:focus {
-            border-color: var(--primary);
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #aaa;
-        }
-        .empty-state .icon {
-            font-size: 4rem;
-            display: block;
-            margin-bottom: 12px;
-        }
-
+        .search-input:focus { border-color: var(--primary); }
+        .record-count { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
         @media (max-width: 480px) {
-            .card {
-                padding: 16px 14px;
-                border-radius: 10px;
-            }
-            .qr-card {
-                padding: 16px;
-            }
-            .card-header h1 {
-                font-size: 1.3rem;
-            }
-            .form-row {
-                flex-direction: column;
-                gap: 0;
-            }
-            .form-row .form-group {
-                margin-bottom: 14px;
-            }
-            .form-row-separator {
-                display: none;
-            }
-            .radio-option label {
-                padding: 10px 12px;
-                font-size: 0.9rem;
-            }
-            .btn {
-                padding: 13px 20px;
-                font-size: 0.95rem;
-            }
-            .detail-modal {
-                padding: 16px;
-                border-radius: 12px;
-            }
+            .card { padding: 16px 14px; }
+            .card-header h1 { font-size: 1.3rem; }
+            .form-row { flex-direction: column; gap: 0; }
+            .form-row .form-group { margin-bottom: 14px; }
+            .form-row-separator { display: none; }
+            .radio-option label { padding: 10px 12px; font-size: 0.9rem; }
+            .btn { padding: 13px 20px; font-size: 0.95rem; }
+            .detail-modal { padding: 16px; border-radius: 12px; }
         }
     </style>
 </head>
@@ -702,22 +555,18 @@
 
     <!-- ==================== 用户填写表单页面 ==================== -->
     <div id="formPage">
-        <!-- 导航 -->
         <div class="nav-bar">
             <div class="nav-logo">
-                <span class="icon">📋</span>
-                患者登记
+                <span class="icon">📋</span>患者登记
             </div>
-            <button class="nav-link admin-link" onclick="showAdminLogin()" title="管理员入口">🔐 管理后台</button>
+            <button class="nav-link admin-link" onclick="showAdminLogin()">🔐 管理后台</button>
         </div>
 
-        <!-- 二维码卡片（扫码填写） -->
+        <!-- 二维码卡片 -->
         <div class="qr-card" id="qrCard">
             <h3>📱 手机扫码填写</h3>
             <div class="qr-container" id="qrCodeContainer"></div>
-            <div class="qr-hint">
-                请使用手机相机或微信扫一扫<br>扫描二维码打开登记表
-            </div>
+            <div class="qr-hint">请使用手机相机或微信扫一扫<br>扫描二维码打开登记表</div>
             <div class="qr-url" id="pageUrlDisplay"></div>
         </div>
 
@@ -728,13 +577,10 @@
                 <p class="subtitle">请如实填写以下信息，带 <span style="color:#E74C3C;">*</span> 为必填项</p>
             </div>
             <form id="patientForm" autocomplete="off">
-                <!-- 1. 患者姓名 -->
                 <div class="form-group">
                     <label class="form-label">1. 患者姓名 <span class="required">*</span></label>
-                    <input type="text" class="form-input" name="patientName" placeholder="请输入患者姓名" required maxlength="30">
+                    <input type="text" class="form-input" name="patientName" placeholder="请输入患者姓名" required>
                 </div>
-
-                <!-- 2. 患者性别 -->
                 <div class="form-group">
                     <label class="form-label">2. 患者性别 <span class="required">*</span></label>
                     <div class="radio-group">
@@ -748,44 +594,31 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 3. 患者年龄 -->
                 <div class="form-group">
                     <label class="form-label">3. 患者年龄 <span class="required">*</span></label>
                     <input type="number" class="form-input" name="age" placeholder="请输入年龄" required min="0" max="150" step="1">
                 </div>
-
-                <!-- 4. 民族 -->
                 <div class="form-group">
                     <label class="form-label">4. 民&nbsp;&nbsp;&nbsp;&nbsp;族</label>
-                    <input type="text" class="form-input" name="ethnicity" placeholder="例如：汉族" maxlength="20">
+                    <input type="text" class="form-input" name="ethnicity" placeholder="例如：汉族">
                 </div>
-
-                <!-- 5. 家庭住址 -->
                 <div class="form-group">
                     <label class="form-label">5. 家庭住址 <span class="required">*</span></label>
-                    <input type="text" class="form-input" name="address" placeholder="xx省xx市xx县（区）xx街道/乡镇" required maxlength="100">
-                    <span class="form-hint">请按格式填写：xx省xx市xx县</span>
+                    <input type="text" class="form-input" name="address" placeholder="xx省xx市xx县" required>
                 </div>
-
-                <!-- 6. 联系电话 -->
                 <div class="form-group">
                     <label class="form-label">6. 联系电话 <span class="required">*</span></label>
-                    <input type="tel" class="form-input" name="phone" placeholder="请输入手机号码" required maxlength="15" pattern="[0-9\-]{7,15}">
+                    <input type="tel" class="form-input" name="phone" placeholder="请输入手机号码" required>
                 </div>
-
-                <!-- 7. 入住时间 -->
                 <div class="form-group">
                     <label class="form-label">7. 入住时间 <span class="required">*</span></label>
                     <input type="date" class="form-input" name="checkInDate" required>
                 </div>
-
-                <!-- 8. 入住时长 -->
                 <div class="form-group">
                     <label class="form-label">8. 入住时长 <span class="required">*</span></label>
                     <div class="form-row">
                         <div class="form-group fixed-width">
-                            <input type="number" class="form-input" name="stayMonths" placeholder="月" required min="0" max="120" style="text-align:center;">
+                            <input type="number" class="form-input" name="stayMonths" placeholder="月" required min="0" style="text-align:center;">
                             <span class="form-hint" style="text-align:center;">月</span>
                         </div>
                         <span class="form-row-separator" style="padding-bottom:20px;">—</span>
@@ -795,16 +628,12 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 9. 入住人数 -->
                 <div class="form-group">
                     <label class="form-label">9. 入住人数 <span class="required">*</span></label>
-                    <input type="number" class="form-input" name="occupancyCount" placeholder="请输入入住人数" required min="1" max="50" step="1">
+                    <input type="number" class="form-input" name="occupancyCount" placeholder="请输入入住人数" required min="1">
                 </div>
-
-                <!-- 10. 有无传染性疾病 -->
                 <div class="form-group">
-                    <label class="form-label">10. 入住人员有无传染性疾病 <span class="required">*</span></label>
+                    <label class="form-label">10. 有无传染性疾病 <span class="required">*</span></label>
                     <div class="radio-group">
                         <div class="radio-option">
                             <input type="radio" name="hasInfectiousDisease" value="无" id="diseaseNo" required checked>
@@ -816,31 +645,25 @@
                         </div>
                     </div>
                     <div class="conditional-field" id="diseaseDetailField">
-                        <textarea class="form-textarea" name="diseaseDetail" placeholder="请具体填写传染性疾病名称及相关情况..." maxlength="200"></textarea>
+                        <textarea class="form-textarea" name="diseaseDetail" placeholder="请具体填写传染性疾病名称及相关情况..."></textarea>
                     </div>
                 </div>
-
-                <!-- 11. 诊断证明 -->
                 <div class="form-group">
                     <label class="form-label">11. 诊断证明（拍照上传）</label>
                     <div class="upload-area" id="uploadArea">
-                        <input type="file" id="diagnosisFile" name="diagnosisImage" accept="image/*" capture="environment">
+                        <input type="file" id="diagnosisFile" accept="image/*" capture="environment">
                         <div class="upload-icon">📸</div>
                         <div class="upload-text">点击此处拍照或选择图片上传</div>
                         <img class="upload-preview" id="uploadPreview" alt="预览">
                         <span class="upload-remove" id="uploadRemove">✕ 移除图片</span>
                     </div>
-                    <span class="form-hint">支持拍照或从相册选择，仅限图片格式</span>
                 </div>
-
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    📤 提交信息
-                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">📤 提交信息</button>
             </form>
         </div>
 
         <!-- 成功页面 -->
-        <div class="card success-page" id="successPage" style="display:none;">
+        <div class="card success-page" id="successPage">
             <div class="success-icon">✅</div>
             <h2>提交成功！</h2>
             <p>患者信息已成功登记，感谢您的配合。</p>
@@ -848,7 +671,7 @@
         </div>
 
         <p style="text-align:center;color:#bbb;font-size:0.75rem;margin-top:8px;">
-            数据安全存储 · 仅管理员可查看
+            数据安全存储于 Supabase · 仅管理员可查看
         </p>
     </div>
 
@@ -856,20 +679,19 @@
     <div id="adminPage" class="admin-hidden">
         <div class="nav-bar">
             <div class="nav-logo">
-                <span class="icon">⚙️</span>
-                管理后台
+                <span class="icon">⚙️</span>管理后台
             </div>
             <button class="nav-link admin-link" onclick="goToForm()">📝 返回登记表</button>
         </div>
 
-        <div class="card login-card" id="adminLoginCard">
+        <div class="card" id="adminLoginCard">
             <div class="card-header">
                 <h1>🔐 管理员登录</h1>
                 <p class="subtitle">请输入管理员密码以查看数据</p>
             </div>
             <div class="form-group">
                 <label class="form-label">管理员密码</label>
-                <input type="password" class="form-input" id="adminPassword" placeholder="请输入密码" onkeydown="if(event.key==='Enter')adminLogin()">
+                <input type="password" class="form-input" id="adminPassword" placeholder="请输入密码">
             </div>
             <button class="btn btn-primary" onclick="adminLogin()">🔓 登 录</button>
         </div>
@@ -878,7 +700,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
                 <div>
                     <h2 style="font-size:1.2rem;">📊 患者登记记录</h2>
-                    <p style="font-size:0.85rem;color:var(--text-secondary);">共 <span class="record-count" id="recordCount">0</span> 条记录</p>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);">共 <span class="record-count" id="recordCount">0</span> 条记录（Supabase云端存储）</p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 导出CSV</button>
@@ -923,54 +745,16 @@
     <div id="toastContainer"></div>
 
     <script>
-        // ==================== 全局配置 ====================
-        const ADMIN_PASSWORD = 'admin2024'; // 管理员密码
-        const STORAGE_KEY = 'patient_records_data';
-        const TOKEN_KEY = 'admin_token_v2';
+        // ==================== 配置 Supabase ====================
+ 	const SUPABASE_URL = 'https://bvmvuirjmlsbuefnsvm.supabase.co';   // 替换为你的 Supabase URL  已完成替换
+        const SUPABASE_ANON_KEY = sb_publishable__J9jNEj_RmSoKegqreOEQw_cGPCozvg';                    // 替换为你的 anon key   已完成替换
 
-        // ==================== 数据存储 ====================
-        function getRecords() {
-            try {
-                const data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
-            }
-        }
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const ADMIN_PASSWORD = 'admin2026';
+        let uploadedFile = null;
+        let allRecords = [];
 
-        function saveRecords(records) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-                return true;
-            } catch (e) {
-                if (e.name === 'QuotaExceededError') {
-                    showToast('存储空间不足，请清理旧数据或压缩图片', 'error');
-                }
-                return false;
-            }
-        }
-
-        function addRecord(record) {
-            const records = getRecords();
-            record.id = generateId();
-            record.submitTime = new Date().toISOString();
-            records.unshift(record);
-            const saved = saveRecords(records);
-            return saved ? record : null;
-        }
-
-        function deleteRecord(id) {
-            let records = getRecords();
-            records = records.filter(r => r.id !== id);
-            saveRecords(records);
-            return records;
-        }
-
-        function generateId() {
-            return 'R' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 7).toUpperCase();
-        }
-
-        // ==================== Toast ====================
+        // ==================== Toast 提示 ====================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -985,43 +769,27 @@
 
         // ==================== 二维码生成 ====================
         function generateQRCode() {
-            // 获取当前页面完整URL，去除可能存在的admin参数，保证手机访问的是填写页
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.delete('admin');
-            const pageUrl = currentUrl.toString();
-
-            // 显示URL文本
-            const urlDisplay = document.getElementById('pageUrlDisplay');
-            if (urlDisplay) {
-                urlDisplay.textContent = pageUrl;
-            }
-
-            // 使用qrcodejs生成二维码
+            const url = window.location.href;
+            document.getElementById('pageUrlDisplay').textContent = url;
             const qrContainer = document.getElementById('qrCodeContainer');
             if (qrContainer && typeof QRCode !== 'undefined') {
-                // 清空容器（防止重复生成）
                 qrContainer.innerHTML = '';
                 new QRCode(qrContainer, {
-                    text: pageUrl,
+                    text: url,
                     width: 180,
                     height: 180,
                     colorDark: '#2c3e50',
                     colorLight: '#ffffff',
                     correctLevel: QRCode.CorrectLevel.M
                 });
-            } else {
-                // 如果库未加载，显示备用提示
-                qrContainer.innerHTML = '<p style="padding:20px;">二维码库加载中，请刷新页面或直接使用下方链接</p>';
             }
         }
 
         // ==================== 图片上传 ====================
-        let uploadedImageData = null;
-
         function setupImageUpload() {
             const fileInput = document.getElementById('diagnosisFile');
-            const uploadArea = document.getElementById('uploadArea');
             const preview = document.getElementById('uploadPreview');
+            const uploadArea = document.getElementById('uploadArea');
             const removeBtn = document.getElementById('uploadRemove');
 
             fileInput.addEventListener('change', function(e) {
@@ -1033,49 +801,29 @@
                     return;
                 }
                 if (file.size > 10 * 1024 * 1024) {
-                    showToast('图片大小不能超过10MB，请压缩后重试', 'error');
+                    showToast('图片大小不能超过10MB', 'error');
                     fileInput.value = '';
                     return;
                 }
+                uploadedFile = file;
                 const reader = new FileReader();
                 reader.onload = function(ev) {
-                    uploadedImageData = ev.target.result;
-                    preview.src = uploadedImageData;
+                    preview.src = ev.target.result;
                     preview.classList.add('show');
                     uploadArea.classList.add('has-file');
                     removeBtn.classList.add('show');
                 };
-                reader.onerror = function() {
-                    showToast('图片读取失败，请重试', 'error');
-                };
                 reader.readAsDataURL(file);
             });
 
-            removeBtn.addEventListener('click', function(e) {
+            removeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 clearImage();
-            });
-
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadArea.style.borderColor = 'var(--primary)';
-            });
-            uploadArea.addEventListener('dragleave', function() {
-                uploadArea.style.borderColor = 'var(--border)';
-            });
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadArea.style.borderColor = 'var(--border)';
-                const file = e.dataTransfer.files[0];
-                if (file && file.type.startsWith('image/')) {
-                    fileInput.files = e.dataTransfer.files;
-                    fileInput.dispatchEvent(new Event('change'));
-                }
             });
         }
 
         function clearImage() {
-            uploadedImageData = null;
+            uploadedFile = null;
             document.getElementById('uploadPreview').src = '';
             document.getElementById('uploadPreview').classList.remove('show');
             document.getElementById('uploadArea').classList.remove('has-file');
@@ -1083,236 +831,251 @@
             document.getElementById('diagnosisFile').value = '';
         }
 
-        // ==================== 条件显示 ====================
+        // ==================== 传染性疾病条件显示 ====================
         function setupConditionalFields() {
-            const diseaseYes = document.getElementById('diseaseYes');
-            const diseaseNo = document.getElementById('diseaseNo');
-            const detailField = document.getElementById('diseaseDetailField');
-
-            function toggleDiseaseDetail() {
-                if (diseaseYes.checked) {
-                    detailField.classList.add('visible');
-                } else {
-                    detailField.classList.remove('visible');
-                }
+            const yes = document.getElementById('diseaseYes');
+            const no = document.getElementById('diseaseNo');
+            const field = document.getElementById('diseaseDetailField');
+            function toggle() {
+                if (yes.checked) field.classList.add('visible');
+                else field.classList.remove('visible');
             }
-            diseaseYes.addEventListener('change', toggleDiseaseDetail);
-            diseaseNo.addEventListener('change', toggleDiseaseDetail);
-            toggleDiseaseDetail();
+            yes.addEventListener('change', toggle);
+            no.addEventListener('change', toggle);
+            toggle();
         }
 
         // ==================== 表单提交 ====================
-        function setupFormSubmit() {
+        async function submitForm(e) {
+            e.preventDefault();
             const form = document.getElementById('patientForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // 基本验证
+            if (!data.patientName?.trim()) return showToast('请输入患者姓名', 'error');
+            if (!data.gender) return showToast('请选择性别', 'error');
+            if (!data.age || parseInt(data.age) < 0 || parseInt(data.age) > 150) return showToast('请输入有效年龄', 'error');
+            if (!data.address?.trim()) return showToast('请输入家庭住址', 'error');
+            if (!data.phone || !/^[0-9\-]{7,15}$/.test(data.phone)) return showToast('请输入有效联系电话', 'error');
+            if (!data.checkInDate) return showToast('请选择入住时间', 'error');
+            if (!data.stayMonths || parseInt(data.stayMonths) < 0) return showToast('请输入入住时长（月）', 'error');
+            if (!data.stayDays || parseInt(data.stayDays) < 0 || parseInt(data.stayDays) > 31) return showToast('请输入有效入住天数', 'error');
+            if (!data.occupancyCount || parseInt(data.occupancyCount) < 1) return showToast('请输入入住人数', 'error');
+            if (!data.hasInfectiousDisease) return showToast('请选择有无传染性疾病', 'error');
+            if (data.hasInfectiousDisease === '有' && !data.diseaseDetail?.trim()) return showToast('请填写具体疾病信息', 'error');
+
             const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
 
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData(form);
-                const data = {};
-                for (const [key, value] of formData.entries()) {
-                    data[key] = value;
-                }
-
-                if (!data.patientName || !data.patientName.trim()) {
-                    showToast('请输入患者姓名', 'error');
-                    return;
-                }
-                if (!data.gender) {
-                    showToast('请选择患者性别', 'error');
-                    return;
-                }
-                if (!data.age || parseInt(data.age) < 0 || parseInt(data.age) > 150) {
-                    showToast('请输入有效的年龄（0-150）', 'error');
-                    return;
-                }
-                if (!data.address || !data.address.trim()) {
-                    showToast('请输入家庭住址', 'error');
-                    return;
-                }
-                if (!data.phone || !/^[0-9\-]{7,15}$/.test(data.phone)) {
-                    showToast('请输入有效的联系电话', 'error');
-                    return;
-                }
-                if (!data.checkInDate) {
-                    showToast('请选择入住时间', 'error');
-                    return;
-                }
-                if (!data.stayMonths || parseInt(data.stayMonths) < 0) {
-                    showToast('请输入入住时长（月）', 'error');
-                    return;
-                }
-                if (!data.stayDays || parseInt(data.stayDays) < 0 || parseInt(data.stayDays) > 31) {
-                    showToast('请输入有效的入住天数（0-31）', 'error');
-                    return;
-                }
-                if (!data.occupancyCount || parseInt(data.occupancyCount) < 1) {
-                    showToast('请输入入住人数（至少1人）', 'error');
-                    return;
-                }
-                if (!data.hasInfectiousDisease) {
-                    showToast('请选择有无传染性疾病', 'error');
-                    return;
-                }
-                if (data.hasInfectiousDisease === '有' && (!data.diseaseDetail || !data.diseaseDetail.trim())) {
-                    showToast('请填写具体的传染性疾病信息', 'error');
-                    return;
+            try {
+                let imageUrl = null;
+                // 上传图片到 Supabase Storage
+                if (uploadedFile) {
+                    const fileName = `diagnosis_${Date.now()}_${uploadedFile.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('diagnosis_images')
+                        .upload(fileName, uploadedFile);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabase.storage
+                        .from('diagnosis_images')
+                        .getPublicUrl(fileName);
+                    imageUrl = urlData.publicUrl;
                 }
 
-                submitBtn.disabled = true;
-                submitBtn.textContent = '提交中...';
+                // 插入数据库
+                const stayMonths = parseInt(data.stayMonths) || 0;
+                const stayDays = parseInt(data.stayDays) || 0;
+                const { error: insertError } = await supabase
+                    .from('patient_records')
+                    .insert({
+                        patient_name: data.patientName.trim(),
+                        gender: data.gender,
+                        age: parseInt(data.age),
+                        ethnicity: (data.ethnicity || '').trim(),
+                        address: data.address.trim(),
+                        phone: data.phone.trim(),
+                        check_in_date: data.checkInDate,
+                        stay_months: stayMonths,
+                        stay_days: stayDays,
+                        stay_duration: `${stayMonths}月${stayDays}天`,
+                        occupancy_count: parseInt(data.occupancyCount),
+                        has_infectious_disease: data.hasInfectiousDisease,
+                        disease_detail: data.hasInfectiousDisease === '有' ? (data.diseaseDetail || '').trim() : '',
+                        diagnosis_image_url: imageUrl
+                    });
+                if (insertError) throw insertError;
 
-                const record = {
-                    patientName: data.patientName.trim(),
-                    gender: data.gender,
-                    age: parseInt(data.age),
-                    ethnicity: (data.ethnicity || '').trim(),
-                    address: data.address.trim(),
-                    phone: data.phone.trim(),
-                    checkInDate: data.checkInDate,
-                    stayMonths: parseInt(data.stayMonths),
-                    stayDays: parseInt(data.stayDays),
-                    stayDuration: `${parseInt(data.stayMonths)}月${parseInt(data.stayDays)}天`,
-                    occupancyCount: parseInt(data.occupancyCount),
-                    hasInfectiousDisease: data.hasInfectiousDisease,
-                    diseaseDetail: data.hasInfectiousDisease === '有' ? (data.diseaseDetail || '').trim() : '',
-                    diagnosisImage: uploadedImageData || null,
-                };
-
-                const result = addRecord(record);
-                if (result) {
-                    document.getElementById('formCard').style.display = 'none';
-                    document.getElementById('successPage').style.display = 'block';
-                    document.getElementById('successPage').scrollIntoView({ behavior: 'smooth' });
-                    showToast('✅ 信息提交成功！', 'success');
-                } else {
-                    showToast('提交失败，请重试', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '📤 提交信息';
-                }
-            });
+                showToast('✅ 信息提交成功！', 'success');
+                document.getElementById('formCard').style.display = 'none';
+                document.getElementById('successPage').style.display = 'block';
+            } catch (error) {
+                console.error('提交失败:', error);
+                showToast('提交失败：' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📤 提交信息';
+            }
         }
 
         function resetForm() {
-            const form = document.getElementById('patientForm');
-            form.reset();
+            document.getElementById('patientForm').reset();
             clearImage();
             document.getElementById('diseaseDetailField').classList.remove('visible');
             document.getElementById('formCard').style.display = 'block';
             document.getElementById('successPage').style.display = 'none';
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').textContent = '📤 提交信息';
-            document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
         }
 
         // ==================== 管理后台 ====================
         function showAdminLogin() {
             document.getElementById('formPage').classList.add('admin-hidden');
             document.getElementById('adminPage').classList.remove('admin-hidden');
-            document.getElementById('adminLoginCard').classList.remove('admin-hidden');
-            document.getElementById('adminPanel').classList.add('admin-hidden');
-            document.getElementById('adminPassword').value = '';
-            const token = localStorage.getItem(TOKEN_KEY);
-            if (token) {
-                document.getElementById('adminLoginCard').classList.add('admin-hidden');
-                document.getElementById('adminPanel').classList.remove('admin-hidden');
-                renderTable();
-            }
-            document.getElementById('adminPage').scrollIntoView({ behavior: 'smooth' });
         }
 
         function goToForm() {
             document.getElementById('adminPage').classList.add('admin-hidden');
             document.getElementById('formPage').classList.remove('admin-hidden');
-            document.getElementById('formPage').scrollIntoView({ behavior: 'smooth' });
-            if (document.getElementById('successPage').style.display === 'block') {
-                resetForm();
-            }
         }
 
         function adminLogin() {
-            const password = document.getElementById('adminPassword').value;
-            if (!password) {
-                showToast('请输入管理员密码', 'error');
-                return;
-            }
-            if (password === ADMIN_PASSWORD) {
-                const token = 'tk_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-                localStorage.setItem(TOKEN_KEY, token);
+            const pwd = document.getElementById('adminPassword').value;
+            if (pwd === ADMIN_PASSWORD) {
                 document.getElementById('adminLoginCard').classList.add('admin-hidden');
                 document.getElementById('adminPanel').classList.remove('admin-hidden');
-                showToast('✅ 登录成功', 'success');
-                renderTable();
+                refreshRecords();
             } else {
-                showToast('❌ 密码错误，请重试', 'error');
-                document.getElementById('adminPassword').value = '';
+                showToast('密码错误', 'error');
             }
         }
 
         function adminLogout() {
-            localStorage.removeItem(TOKEN_KEY);
             document.getElementById('adminLoginCard').classList.remove('admin-hidden');
             document.getElementById('adminPanel').classList.add('admin-hidden');
             document.getElementById('adminPassword').value = '';
-            showToast('已退出登录', 'info');
         }
 
-        function refreshRecords() {
-            renderTable();
-            showToast('数据已刷新', 'info');
+        async function fetchRecords() {
+            const { data, error } = await supabase
+                .from('patient_records')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        }
+
+        async function refreshRecords() {
+            try {
+                allRecords = await fetchRecords();
+                renderTable();
+                showToast('数据已刷新', 'info');
+            } catch (e) {
+                showToast('加载失败：' + e.message, 'error');
+            }
         }
 
         function renderTable() {
-            const records = getRecords();
-            const searchTerm = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-            let filtered = records;
-            if (searchTerm) {
-                filtered = records.filter(r => {
-                    return (r.patientName && r.patientName.toLowerCase().includes(searchTerm)) ||
-                        (r.phone && r.phone.includes(searchTerm)) ||
-                        (r.address && r.address.toLowerCase().includes(searchTerm)) ||
-                        (r.ethnicity && r.ethnicity.toLowerCase().includes(searchTerm));
-                });
-            }
-
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const filtered = allRecords.filter(r =>
+                r.patient_name?.toLowerCase().includes(search) ||
+                r.phone?.includes(search) ||
+                r.address?.toLowerCase().includes(search)
+            );
+            document.getElementById('recordCount').textContent = allRecords.length;
             const tbody = document.getElementById('tableBody');
-            const emptyState = document.getElementById('emptyState');
-            const recordCount = document.getElementById('recordCount');
-            recordCount.textContent = records.length;
-
             if (filtered.length === 0) {
                 tbody.innerHTML = '';
-                emptyState.style.display = 'block';
-                emptyState.querySelector('p').textContent = records.length > 0 ? '未找到匹配的记录' : '暂无记录';
-            } else {
-                emptyState.style.display = 'none';
-                tbody.innerHTML = filtered.map((r, index) => {
-                    const submitTime = r.submitTime ? new Date(r.submitTime).toLocaleString('zh-CN', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : '未知';
-                    const diseaseBadge = r.hasInfectiousDisease === '有' ?
-                        `<span class="badge badge-yes">有</span>` :
-                        `<span class="badge badge-no">无</span>`;
-                    return `
-                        <tr onclick="viewDetail('${r.id}')" title="点击查看详情">
-                            <td>${index + 1}</td>
-                            <td><strong>${escapeHtml(r.patientName)}</strong></td>
-                            <td>${escapeHtml(r.gender)}</td>
-                            <td>${r.age}岁</td>
-                            <td>${escapeHtml(r.phone)}</td>
-                            <td>${escapeHtml(r.checkInDate)}</td>
-                            <td>${escapeHtml(r.stayDuration || '')}</td>
-                            <td>${diseaseBadge}</td>
-                            <td>${submitTime}</td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete('${r.id}')" title="删除">🗑</button>
-                            </td>
-                        </tr>`;
-                }).join('');
+                document.getElementById('emptyState').style.display = 'block';
+                return;
             }
+            document.getElementById('emptyState').style.display = 'none';
+            tbody.innerHTML = filtered.map((r, i) => `
+                <tr onclick="viewDetail(${r.id})">
+                    <td>${i + 1}</td>
+                    <td><strong>${escapeHtml(r.patient_name)}</strong></td>
+                    <td>${escapeHtml(r.gender)}</td>
+                    <td>${r.age}</td>
+                    <td>${escapeHtml(r.phone)}</td>
+                    <td>${r.check_in_date}</td>
+                    <td>${r.stay_duration || ''}</td>
+                    <td>${r.has_infectious_disease === '有' ? '<span class="badge badge-yes">有</span>' : '<span class="badge badge-no">无</span>'}</td>
+                    <td>${new Date(r.created_at).toLocaleString()}</td>
+                    <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete(${r.id})">🗑</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function viewDetail(id) {
+            const r = allRecords.find(x => x.id === id);
+            if (!r) return;
+            document.getElementById('detailContent').innerHTML = `
+                <button class="modal-close" onclick="closeDetail()">✕</button>
+                <h3>📋 记录详情</h3>
+                <div class="detail-row"><span class="detail-label">患者姓名</span><span class="detail-value"><strong>${escapeHtml(r.patient_name)}</strong></span></div>
+                <div class="detail-row"><span class="detail-label">性别</span><span class="detail-value">${escapeHtml(r.gender)}</span></div>
+                <div class="detail-row"><span class="detail-label">年龄</span><span class="detail-value">${r.age} 岁</span></div>
+                <div class="detail-row"><span class="detail-label">民族</span><span class="detail-value">${escapeHtml(r.ethnicity || '未填写')}</span></div>
+                <div class="detail-row"><span class="detail-label">家庭住址</span><span class="detail-value">${escapeHtml(r.address)}</span></div>
+                <div class="detail-row"><span class="detail-label">联系电话</span><span class="detail-value">${escapeHtml(r.phone)}</span></div>
+                <div class="detail-row"><span class="detail-label">入住时间</span><span class="detail-value">${r.check_in_date}</span></div>
+                <div class="detail-row"><span class="detail-label">入住时长</span><span class="detail-value">${r.stay_duration || ''}</span></div>
+                <div class="detail-row"><span class="detail-label">入住人数</span><span class="detail-value">${r.occupancy_count} 人</span></div>
+                <div class="detail-row"><span class="detail-label">传染性疾病</span><span class="detail-value">${r.has_infectious_disease}${r.disease_detail ? ' —— ' + escapeHtml(r.disease_detail) : ''}</span></div>
+                <div class="detail-row"><span class="detail-label">提交时间</span><span class="detail-value">${new Date(r.created_at).toLocaleString()}</span></div>
+                <div class="detail-row">
+                    <span class="detail-label">诊断证明</span>
+                    <span class="detail-value">
+                        ${r.diagnosis_image_url ? `<img class="detail-image" src="${r.diagnosis_image_url}" alt="诊断证明" onclick="window.open(this.src)" title="点击查看大图">` : '未上传'}
+                    </span>
+                </div>
+                <div style="margin-top:16px;text-align:right;">
+                    <button class="btn btn-danger btn-sm" onclick="confirmDelete(${r.id});closeDetail();">🗑 删除此记录</button>
+                </div>
+            `;
+            document.getElementById('detailModal').classList.remove('admin-hidden');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailModal').classList.add('admin-hidden');
+        }
+
+        async function confirmDelete(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            const { error } = await supabase.from('patient_records').delete().eq('id', id);
+            if (error) {
+                showToast('删除失败：' + error.message, 'error');
+            } else {
+                showToast('记录已删除', 'info');
+                await refreshRecords();
+            }
+        }
+
+        // ==================== CSV 导出 ====================
+        function exportCSV() {
+            if (!allRecords.length) return showToast('没有数据可导出', 'error');
+            const headers = ['姓名','性别','年龄','电话','住址','入住时间','入住时长','传染性疾病','提交时间'];
+            const rows = allRecords.map(r => [
+                r.patient_name,
+                r.gender,
+                r.age,
+                r.phone,
+                r.address,
+                r.check_in_date,
+                r.stay_duration,
+                r.has_infectious_disease,
+                new Date(r.created_at).toLocaleString()
+            ]);
+            const BOM = '\uFEFF';
+            const csvContent = BOM + [headers, ...rows].map(row => row.map(cell => {
+                const str = String(cell);
+                return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
+            }).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `患者记录_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            showToast('✅ CSV导出成功！', 'success');
         }
 
         function escapeHtml(str) {
@@ -1322,131 +1085,18 @@
             return div.innerHTML;
         }
 
-        function viewDetail(id) {
-            const records = getRecords();
-            const record = records.find(r => r.id === id);
-            if (!record) return;
-            const detailContent = document.getElementById('detailContent');
-            const submitTime = record.submitTime ? new Date(record.submitTime).toLocaleString('zh-CN') : '未知';
-            detailContent.innerHTML = `
-                <button class="modal-close" onclick="closeDetail()">✕</button>
-                <h3>📋 记录详情</h3>
-                <div class="detail-row"><span class="detail-label">记录ID</span><span class="detail-value">${escapeHtml(record.id)}</span></div>
-                <div class="detail-row"><span class="detail-label">患者姓名</span><span class="detail-value"><strong>${escapeHtml(record.patientName)}</strong></span></div>
-                <div class="detail-row"><span class="detail-label">性别</span><span class="detail-value">${escapeHtml(record.gender)}</span></div>
-                <div class="detail-row"><span class="detail-label">年龄</span><span class="detail-value">${record.age} 岁</span></div>
-                <div class="detail-row"><span class="detail-label">民族</span><span class="detail-value">${escapeHtml(record.ethnicity || '未填写')}</span></div>
-                <div class="detail-row"><span class="detail-label">家庭住址</span><span class="detail-value">${escapeHtml(record.address)}</span></div>
-                <div class="detail-row"><span class="detail-label">联系电话</span><span class="detail-value">${escapeHtml(record.phone)}</span></div>
-                <div class="detail-row"><span class="detail-label">入住时间</span><span class="detail-value">${escapeHtml(record.checkInDate)}</span></div>
-                <div class="detail-row"><span class="detail-label">入住时长</span><span class="detail-value">${escapeHtml(record.stayDuration || '')}</span></div>
-                <div class="detail-row"><span class="detail-label">入住人数</span><span class="detail-value">${record.occupancyCount} 人</span></div>
-                <div class="detail-row"><span class="detail-label">传染性疾病</span><span class="detail-value">${escapeHtml(record.hasInfectiousDisease)}${record.diseaseDetail ? ' —— ' + escapeHtml(record.diseaseDetail) : ''}</span></div>
-                <div class="detail-row"><span class="detail-label">提交时间</span><span class="detail-value">${submitTime}</span></div>
-                <div class="detail-row">
-                    <span class="detail-label">诊断证明</span>
-                    <span class="detail-value">
-                        ${record.diagnosisImage 
-                            ? `<img class="detail-image" src="${record.diagnosisImage}" alt="诊断证明" onclick="window.open(this.src)" title="点击查看大图">` 
-                            : '未上传'}
-                    </span>
-                </div>
-                <div style="margin-top:16px;text-align:right;">
-                    <button class="btn btn-danger btn-sm" onclick="confirmDelete('${record.id}');closeDetail();">🗑 删除此记录</button>
-                </div>
-            `;
-            document.getElementById('detailModal').classList.remove('admin-hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeDetail() {
-            document.getElementById('detailModal').classList.add('admin-hidden');
-            document.body.style.overflow = '';
-        }
-
-        function confirmDelete(id) {
-            if (confirm('确定要删除这条记录吗？此操作不可恢复。')) {
-                deleteRecord(id);
-                renderTable();
-                showToast('记录已删除', 'info');
-            }
-        }
-
-        function exportCSV() {
-            const records = getRecords();
-            if (records.length === 0) {
-                showToast('没有数据可导出', 'error');
-                return;
-            }
-            const headers = [
-                '记录ID', '患者姓名', '性别', '年龄', '民族', '家庭住址', '联系电话',
-                '入住时间', '入住时长', '入住人数', '有无传染性疾病', '疾病详情', '提交时间'
-            ];
-            const rows = records.map(r => [
-                r.id,
-                r.patientName,
-                r.gender,
-                r.age,
-                r.ethnicity || '',
-                r.address,
-                r.phone,
-                r.checkInDate,
-                r.stayDuration || '',
-                r.occupancyCount,
-                r.hasInfectiousDisease,
-                r.diseaseDetail || '',
-                r.submitTime ? new Date(r.submitTime).toLocaleString('zh-CN') : ''
-            ]);
-            const BOM = '\uFEFF';
-            const csvContent = BOM + [headers, ...rows]
-                .map(row => row.map(cell => {
-                    const cellStr = String(cell);
-                    if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') || cellStr
-                        .includes('\r')) {
-                        return '"' + cellStr.replace(/"/g, '""') + '"';
-                    }
-                    return cellStr;
-                }).join(','))
-                .join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `患者登记记录_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showToast('✅ CSV导出成功！', 'success');
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeDetail();
-        });
-
         // ==================== 初始化 ====================
-        function init() {
-            // 生成二维码
+        window.addEventListener('DOMContentLoaded', () => {
             generateQRCode();
-
             setupImageUpload();
             setupConditionalFields();
-            setupFormSubmit();
+            document.getElementById('patientForm').addEventListener('submit', submitForm);
+            document.querySelector('input[name="checkInDate"]').value = new Date().toISOString().split('T')[0];
+        });
 
-            const today = new Date().toISOString().split('T')[0];
-            document.querySelector('input[name="checkInDate"]').value = today;
-
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('admin') === '1') {
-                showAdminLogin();
-            }
-
-            console.log('✅ 患者信息登记系统已启动');
-            console.log('📱 扫描页面顶部二维码即可在手机上填写');
-            console.log('🔐 管理员密码：', ADMIN_PASSWORD);
-        }
-
-        init();
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDetail();
+        });
     </script>
 </body>
 </html>
