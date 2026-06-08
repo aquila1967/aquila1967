@@ -2,542 +2,95 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>患者信息登记系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <style>
-        :root {
-            --primary: #4A90D9; --primary-dark: #357ABD; --success: #52C41A;
-            --danger: #E74C3C; --bg: #f5f7fa; --card-bg: #ffffff;
-            --text: #2c3e50; --text-secondary: #666; --border: #e0e6ed;
-            --shadow: 0 4px 20px rgba(0,0,0,0.08); --radius: 12px;
-        }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
-            background: var(--bg); color: var(--text);
-            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-            padding: 16px;
-        }
-        .nav-bar { width:100%; max-width:600px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-        .nav-logo { font-size:1.3rem; font-weight:700; color:var(--primary); }
-        .nav-link { font-size:0.9rem; padding:8px 16px; border-radius:20px; cursor:pointer; border:none; background:rgba(74,144,217,0.08); color:var(--primary); }
-        .nav-link.admin-link { background:transparent; color:var(--text-secondary); }
-        .qr-card { background:var(--card-bg); border-radius:var(--radius); padding:20px; max-width:600px; width:100%; margin-bottom:16px; text-align:center; box-shadow:var(--shadow); }
-        .card { background:var(--card-bg); border-radius:var(--radius); padding:24px; max-width:600px; width:100%; margin-bottom:16px; box-shadow:var(--shadow); }
-        .card-header { text-align:center; margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid #f0f4f8; }
-        .form-group { margin-bottom:16px; }
-        .form-label { display:block; font-weight:600; font-size:0.9rem; margin-bottom:6px; }
-        .form-label .required { color:var(--danger); }
-        .form-input, .form-textarea { width:100%; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:1rem; background:#fafbfc; outline:none; }
-        .form-input:focus, .form-textarea:focus { border-color:var(--primary); background:#fff; }
-        .form-textarea { resize:vertical; min-height:80px; }
-        .form-row { display:flex; gap:10px; }
-        .radio-group { display:flex; gap:10px; }
-        .radio-option { flex:1; }
-        .radio-option input { display:none; }
-        .radio-option label { display:flex; align-items:center; justify-content:center; padding:12px; border:2px solid var(--border); border-radius:10px; cursor:pointer; background:#fafbfc; }
-        .radio-option input:checked+label { border-color:var(--primary); background:#eef5fc; color:var(--primary); font-weight:700; }
-        .conditional-field { overflow:hidden; max-height:0; opacity:0; transition:all 0.3s; }
-        .conditional-field.visible { max-height:150px; opacity:1; margin-top:12px; }
-        .upload-area { border:2px dashed var(--border); border-radius:12px; padding:20px; text-align:center; cursor:pointer; background:#fafbfc; position:relative; }
-        .upload-area.has-file { border-color:var(--success); background:#f6fdf8; }
-        .upload-preview { max-width:100%; max-height:200px; border-radius:8px; margin-top:12px; display:none; }
-        .upload-preview.show { display:block; }
-        .upload-remove { display:none; margin-top:8px; color:var(--danger); cursor:pointer; }
-        .upload-remove.show { display:inline-block; }
-        .upload-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-        .btn { width:100%; padding:14px; font-size:1rem; font-weight:600; border-radius:10px; cursor:pointer; border:none; }
-        .btn-primary { background:var(--primary); color:#fff; }
-        .btn-primary:disabled { background:#b0cde8; cursor:not-allowed; }
-        .btn-outline { background:#fff; color:var(--primary); border:2px solid var(--primary); }
-        .btn-sm { padding:8px 16px; font-size:0.85rem; width:auto; }
-        .btn-danger { background:#fff; color:var(--danger); border:1px solid #fcc; }
-        .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:9999; padding:14px 24px; border-radius:10px; color:#fff; font-weight:600; animation:slideDown 0.3s; }
-        .toast.success { background:#27ae60; } .toast.error { background:#e74c3c; } .toast.info { background:#2c3e50; }
-        @keyframes slideDown { from{opacity:0;transform:translateX(-50%) translateY(-30px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
-        @keyframes fadeOut { from{opacity:1;} to{opacity:0;} }
-        .success-page { text-align:center; display:none; }
-        .admin-hidden { display:none !important; }
-        .table-wrapper { overflow-x:auto; border-radius:10px; border:1px solid var(--border); }
-        table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:700px; }
-        table th, table td { padding:10px; text-align:left; border-bottom:1px solid #eee; }
-        table th { background:#f8fafc; font-weight:700; }
-        table tbody tr:hover { background:#f8fafd; cursor:pointer; }
-        .badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
-        .badge-yes { background:#fff0f0; color:#c0392b; } .badge-no { background:#f0faf4; color:#27ae60; }
-        .detail-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center; }
-        .detail-modal { background:#fff; border-radius:16px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; }
-        .detail-row { display:flex; padding:8px 0; border-bottom:1px solid #f0f0f0; }
-        .detail-label { font-weight:600; min-width:80px; color:#666; }
-        .modal-close { position:absolute; top:10px; right:15px; font-size:1.5rem; cursor:pointer; background:none; border:none; }
-        .empty-state { text-align:center; padding:40px; color:#aaa; }
-        .toolbar { display:flex; gap:10px; margin-bottom:15px; }
-        .search-input { flex:1; padding:10px; border:2px solid var(--border); border-radius:10px; outline:none; }
-    </style>
+    <title>CloudBase 连接测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.7.3/dist/cloudbase.full.js"></script>
 </head>
 <body>
-
-    <div id="formPage">
-        <div class="nav-bar">
-            <div class="nav-logo">📋 患者登记</div>
-            <button class="nav-link admin-link" id="adminEntryBtn">🔐 管理后台</button>
+    <div style="padding: 40px; font-family: sans-serif;">
+        <h2>CloudBase 连接测试</h2>
+        <div id="status" style="padding: 20px; background: #f0f0f0; border-radius: 8px; margin: 20px 0;">
+            正在初始化...
         </div>
-
-        <div class="qr-card">
-            <h3>📱 手机扫码填写</h3>
-            <div id="qrCodeContainer"></div>
-            <p style="font-size:0.8rem;color:#888;margin-top:10px;">扫描二维码打开登记表</p>
-            <p id="pageUrlDisplay" style="font-size:0.75rem;color:#999;word-break:break-all;"></p>
-        </div>
-
-        <div class="card" id="formCard">
-            <div class="card-header">
-                <h1>📝 患者信息登记表</h1>
-                <p style="color:#666;">带 <span style="color:#E74C3C;">*</span> 为必填项</p>
-            </div>
-            <form id="patientForm">
-                <div class="form-group">
-                    <label class="form-label">1. 患者姓名 <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="patientName" placeholder="请输入患者姓名">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">2. 患者性别 <span class="required">*</span></label>
-                    <div class="radio-group">
-                        <div class="radio-option"><input type="radio" name="gender" value="男" id="genderMale"><label for="genderMale">👨 男</label></div>
-                        <div class="radio-option"><input type="radio" name="gender" value="女" id="genderFemale"><label for="genderFemale">👩 女</label></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">3. 患者年龄 <span class="required">*</span></label>
-                    <input type="number" class="form-input" id="age" placeholder="请输入年龄">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">4. 民族</label>
-                    <input type="text" class="form-input" id="ethnicity" placeholder="例如：汉族">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">5. 家庭住址 <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="address" placeholder="xx省xx市xx县">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">6. 联系电话 <span class="required">*</span></label>
-                    <input type="tel" class="form-input" id="phone" placeholder="请输入手机号码">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">7. 入住时间 <span class="required">*</span></label>
-                    <input type="date" class="form-input" id="checkInDate">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">8. 入住时长 <span class="required">*</span></label>
-                    <div class="form-row">
-                        <input type="number" class="form-input" id="stayMonths" placeholder="月" min="0" style="flex:1;text-align:center;">
-                        <span style="padding:10px;">—</span>
-                        <input type="number" class="form-input" id="stayDays" placeholder="天" min="0" max="31" style="flex:1;text-align:center;">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">9. 入住人数 <span class="required">*</span></label>
-                    <input type="number" class="form-input" id="occupancyCount" placeholder="请输入入住人数">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">10. 有无传染性疾病 <span class="required">*</span></label>
-                    <div class="radio-group">
-                        <div class="radio-option"><input type="radio" name="hasDisease" value="无" id="diseaseNo" checked><label for="diseaseNo">✅ 无</label></div>
-                        <div class="radio-option"><input type="radio" name="hasDisease" value="有" id="diseaseYes"><label for="diseaseYes">⚠️ 有</label></div>
-                    </div>
-                    <div class="conditional-field" id="diseaseDetailField">
-                        <textarea class="form-textarea" id="diseaseDetail" placeholder="请具体填写传染性疾病名称..."></textarea>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">11. 诊断证明（拍照上传）</label>
-                    <div class="upload-area" id="uploadArea">
-                        <input type="file" id="diagnosisFile" accept="image/*">
-                        <div>📸</div>
-                        <div>点击拍照或选择图片</div>
-                        <img class="upload-preview" id="uploadPreview">
-                        <span class="upload-remove" id="uploadRemove">✕ 移除</span>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-primary" id="submitBtn">📤 提交信息</button>
-            </form>
-        </div>
-
-        <div class="card success-page" id="successPage">
-            <div style="font-size:3rem;">✅</div>
-            <h2>提交成功！</h2>
-            <p>患者信息已登记</p>
-            <button class="btn btn-outline" id="newRecordBtn">📝 填写新记录</button>
-        </div>
+        <button id="testBtn" disabled style="padding: 12px 24px; font-size: 16px; cursor: pointer;">测试提交</button>
+        <div id="result" style="margin-top: 20px; padding: 10px;"></div>
     </div>
-
-    <div id="adminPage" class="admin-hidden">
-        <div class="nav-bar">
-            <div class="nav-logo">⚙️ 管理后台</div>
-            <button class="nav-link admin-link" id="backToFormBtn">📝 返回</button>
-        </div>
-        <div class="card" id="adminLoginCard">
-            <h1 style="text-align:center;">🔐 管理员登录</h1>
-            <div class="form-group"><input type="password" class="form-input" id="adminPassword" placeholder="请输入密码"></div>
-            <button class="btn btn-primary" id="loginBtn">🔓 登录</button>
-        </div>
-        <div class="card admin-hidden" id="adminPanel">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                <div><h2>📊 患者记录</h2><p>共 <span id="recordCount">0</span> 条</p></div>
-                <div>
-                    <button class="btn btn-outline btn-sm" id="exportCSVBtn">📥 导出</button>
-                    <button class="btn btn-outline btn-sm" id="refreshBtn">🔄 刷新</button>
-                    <button class="btn btn-danger btn-sm" id="logoutBtn">🚪 退出</button>
-                </div>
-            </div>
-            <div class="toolbar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索..."></div>
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>#</th><th>姓名</th><th>性别</th><th>年龄</th><th>电话</th><th>入住时间</th><th>时长</th><th>传染</th><th>提交时间</th><th>操作</th></tr></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-                <div class="empty-state" id="emptyState">📭 暂无记录</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="detail-modal-overlay admin-hidden" id="detailModal">
-        <div class="detail-modal" id="detailContent"></div>
-    </div>
-    <div id="toastContainer"></div>
 
     <script>
-        // ==================== 全局变量 ====================
-        const SUPABASE_URL = 'https://xnlsrnbxgykfwpzwzk.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_OlBqhLEZBVvgf6pD52Nk3g_DlnWpPQn';
-        const ADMIN_PASSWORD = 'admin2026';
+        // 等待页面完全加载后再执行
+        window.onload = function() {
+            const statusDiv = document.getElementById('status');
+            const testBtn = document.getElementById('testBtn');
+            const resultDiv = document.getElementById('result');
+            
+            const ENV_ID = 'patient-system-d1gnjt0b6782fb310';
 
-        // 使用 IIFE 避免变量污染
-        (function() {
-            // ==================== 初始化 ====================
-            let supabase = null;
-            let uploadedFile = null;
-            let allRecords = [];
-
-            if (typeof window.supabase !== 'undefined') {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✅ Supabase 初始化成功');
-            } else {
-                console.error('❌ Supabase SDK 未加载');
+            // 检查 SDK 是否加载
+            if (typeof cloudbase === 'undefined') {
+                statusDiv.innerHTML = '❌ SDK 未加载，请检查网络';
+                statusDiv.style.background = '#ffe0e0';
+                return;
+            }
+            
+            statusDiv.innerHTML = 'SDK 已加载，正在初始化...';
+            
+            try {
+                const app = cloudbase.init({ env: ENV_ID });
+                
+                app.auth({ persistence: 'local' }).anonymousAuthProvider().signIn()
+                    .then(function() {
+                        statusDiv.innerHTML = '✅ CloudBase 初始化成功！';
+                        statusDiv.style.background = '#e0ffe0';
+                        testBtn.disabled = false;
+                        console.log('✅ 初始化成功');
+                    })
+                    .catch(function(err) {
+                        statusDiv.innerHTML = '❌ 初始化失败: ' + err.message;
+                        statusDiv.style.background = '#ffe0e0';
+                        console.error('初始化失败:', err);
+                    });
+            } catch(e) {
+                statusDiv.innerHTML = '❌ 初始化异常: ' + e.message;
+                statusDiv.style.background = '#ffe0e0';
             }
 
-            // ==================== 工具函数 ====================
-            function showToast(msg, type) {
-                const c = document.getElementById('toastContainer');
-                const t = document.createElement('div');
-                t.className = 'toast ' + type;
-                t.textContent = msg;
-                c.appendChild(t);
-                setTimeout(() => { t.style.animation = 'fadeOut 0.4s forwards'; setTimeout(() => t.remove(), 400); }, 2500);
-            }
-
-            function escapeHtml(str) {
-                const d = document.createElement('div');
-                d.textContent = str || '';
-                return d.innerHTML;
-            }
-
-            // ==================== 二维码 ====================
-            function generateQR() {
-                const url = window.location.href.split('?')[0]; // 去掉查询参数
-                document.getElementById('pageUrlDisplay').textContent = url;
-                const qr = document.getElementById('qrCodeContainer');
-                if (qr && typeof QRCode !== 'undefined') {
-                    qr.innerHTML = '';
-                    new QRCode(qr, { text: url, width: 150, height: 150 });
-                }
-            }
-
-            // ==================== 图片上传 ====================
-            function setupUpload() {
-                const fi = document.getElementById('diagnosisFile');
-                const prev = document.getElementById('uploadPreview');
-                const area = document.getElementById('uploadArea');
-                const rm = document.getElementById('uploadRemove');
-
-                fi.addEventListener('change', function(e) {
-                    const file = e.target.files[0];
-                    if (!file || !file.type.startsWith('image/')) return;
-                    if (file.size > 10*1024*1024) return showToast('图片不能超过10MB','error');
-                    uploadedFile = file;
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        prev.src = ev.target.result;
-                        prev.classList.add('show');
-                        area.classList.add('has-file');
-                        rm.classList.add('show');
-                    };
-                    reader.readAsDataURL(file);
-                });
-
-                rm.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    uploadedFile = null;
-                    prev.src = '';
-                    prev.classList.remove('show');
-                    area.classList.remove('has-file');
-                    rm.classList.remove('show');
-                    fi.value = '';
-                });
-            }
-
-            // ==================== 条件显示 ====================
-            function setupCondition() {
-                const yes = document.getElementById('diseaseYes');
-                const no = document.getElementById('diseaseNo');
-                const field = document.getElementById('diseaseDetailField');
-                function toggle() { field.classList.toggle('visible', yes.checked); }
-                yes.addEventListener('change', toggle);
-                no.addEventListener('change', toggle);
-                toggle();
-            }
-
-            // ==================== 表单提交 ====================
-            async function handleSubmit() {
-                console.log('🚀 提交按钮被点击');
-
-                // 获取表单数据
-                const patientName = document.getElementById('patientName').value.trim();
-                const gender = document.querySelector('input[name="gender"]:checked')?.value;
-                const age = parseInt(document.getElementById('age').value);
-                const ethnicity = document.getElementById('ethnicity').value.trim();
-                const address = document.getElementById('address').value.trim();
-                const phone = document.getElementById('phone').value.trim();
-                const checkInDate = document.getElementById('checkInDate').value;
-                const stayMonths = parseInt(document.getElementById('stayMonths').value) || 0;
-                const stayDays = parseInt(document.getElementById('stayDays').value) || 0;
-                const occupancyCount = parseInt(document.getElementById('occupancyCount').value) || 1;
-                const hasDisease = document.querySelector('input[name="hasDisease"]:checked')?.value;
-                const diseaseDetail = document.getElementById('diseaseDetail').value.trim();
-
-                console.log('📝 数据:', { patientName, gender, age, address, phone, checkInDate, hasDisease });
-
-                // 验证
-                if (!patientName) return showToast('请输入患者姓名', 'error');
-                if (!gender) return showToast('请选择性别', 'error');
-                if (!age || age < 0 || age > 150) return showToast('请输入有效年龄', 'error');
-                if (!address) return showToast('请输入家庭住址', 'error');
-                if (!phone || !/^[0-9\-]{7,15}$/.test(phone)) return showToast('请输入有效联系电话', 'error');
-                if (!checkInDate) return showToast('请选择入住时间', 'error');
-                if (hasDisease === '有' && !diseaseDetail) return showToast('请填写具体疾病信息', 'error');
-
-                console.log('✅ 验证通过');
-
-                const btn = document.getElementById('submitBtn');
-                btn.disabled = true;
-                btn.textContent = '提交中...';
-
+            // 测试提交按钮
+            testBtn.onclick = async function() {
+                testBtn.disabled = true;
+                testBtn.textContent = '提交中...';
+                resultDiv.innerHTML = '';
+                
                 try {
-                    const record = {
-                        patient_name: patientName,
-                        gender: gender,
-                        age: age,
-                        ethnicity: ethnicity,
-                        address: address,
-                        phone: phone,
-                        check_in_date: checkInDate,
-                        stay_months: stayMonths,
-                        stay_days: stayDays,
-                        stay_duration: stayMonths + '月' + stayDays + '天',
-                        occupancy_count: occupancyCount,
-                        has_infectious_disease: hasDisease,
-                        disease_detail: hasDisease === '有' ? diseaseDetail : '',
-                        diagnosis_image_url: null
-                    };
-
-                    console.log('📦 提交数据:', record);
-
-                    if (supabase) {
-                        console.log('📡 向 Supabase 发送...');
-                        const { error } = await supabase.from('patient_records').insert(record);
-                        if (error) {
-                            console.error('❌ Supabase 错误:', error);
-                            throw error;
-                        }
-                        console.log('✅ Supabase 保存成功');
-                    } else {
-                        console.log('⚠️ 使用本地存储');
-                        let local = JSON.parse(localStorage.getItem('patient_records') || '[]');
-                        record.id = Date.now();
-                        record.created_at = new Date().toISOString();
-                        local.unshift(record);
-                        localStorage.setItem('patient_records', JSON.stringify(local));
-                    }
-
-                    showToast('✅ 提交成功！', 'success');
-                    document.getElementById('formCard').style.display = 'none';
-                    document.getElementById('successPage').style.display = 'block';
-                } catch (error) {
-                    console.error('❌ 提交失败:', error);
-                    showToast('提交失败：' + error.message, 'error');
+                    const app = cloudbase.init({ env: ENV_ID });
+                    const db = app.database();
+                    
+                    await db.collection('patient_records').add({
+                        patient_name: '测试患者',
+                        gender: '男',
+                        age: 30,
+                        ethnicity: '汉族',
+                        address: '测试地址',
+                        phone: '13800138000',
+                        check_in_date: '2026-06-08',
+                        stay_months: 1,
+                        stay_days: 0,
+                        stay_duration: '1月0天',
+                        occupancy_count: 1,
+                        has_infectious_disease: '无',
+                        disease_detail: '',
+                        createdAt: new Date()
+                    });
+                    
+                    resultDiv.innerHTML = '<p style="color: green;">✅ 提交成功！请到 CloudBase 控制台查看数据。</p>';
+                    console.log('✅ 提交成功');
+                } catch(error) {
+                    resultDiv.innerHTML = '<p style="color: red;">❌ 提交失败: ' + error.message + '</p>';
+                    console.error('提交失败:', error);
                 } finally {
-                    btn.disabled = false;
-                    btn.textContent = '📤 提交信息';
+                    testBtn.disabled = false;
+                    testBtn.textContent = '测试提交';
                 }
-            }
-
-            function resetForm() {
-                const fields = ['patientName','age','ethnicity','address','phone','stayMonths','stayDays','occupancyCount','diseaseDetail'];
-                fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-                document.getElementById('checkInDate').value = new Date().toISOString().split('T')[0];
-                document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
-                document.getElementById('diseaseNo').checked = true;
-                document.getElementById('diseaseDetailField').classList.remove('visible');
-                uploadedFile = null;
-                document.getElementById('uploadPreview').src = '';
-                document.getElementById('uploadPreview').classList.remove('show');
-                document.getElementById('uploadArea').classList.remove('has-file');
-                document.getElementById('uploadRemove').classList.remove('show');
-                document.getElementById('diagnosisFile').value = '';
-                document.getElementById('formCard').style.display = 'block';
-                document.getElementById('successPage').style.display = 'none';
-            }
-
-            // ==================== 页面切换 ====================
-            function showAdmin() {
-                document.getElementById('formPage').classList.add('admin-hidden');
-                document.getElementById('adminPage').classList.remove('admin-hidden');
-            }
-
-            function showForm() {
-                document.getElementById('adminPage').classList.add('admin-hidden');
-                document.getElementById('formPage').classList.remove('admin-hidden');
-            }
-
-            function adminLogin() {
-                if (document.getElementById('adminPassword').value === ADMIN_PASSWORD) {
-                    document.getElementById('adminLoginCard').classList.add('admin-hidden');
-                    document.getElementById('adminPanel').classList.remove('admin-hidden');
-                    refreshRecords();
-                } else showToast('密码错误','error');
-            }
-
-            function adminLogout() {
-                document.getElementById('adminLoginCard').classList.remove('admin-hidden');
-                document.getElementById('adminPanel').classList.add('admin-hidden');
-            }
-
-            // ==================== 数据操作 ====================
-            async function loadRecords() {
-                if (supabase) {
-                    const { data, error } = await supabase.from('patient_records').select('*').order('created_at', { ascending: false });
-                    if (error) throw error;
-                    return data;
-                }
-                return JSON.parse(localStorage.getItem('patient_records') || '[]');
-            }
-
-            async function refreshRecords() {
-                try {
-                    allRecords = await loadRecords();
-                    renderTable();
-                    showToast('数据已刷新','info');
-                } catch(e) { showToast('加载失败','error'); }
-            }
-
-            function renderTable() {
-                const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-                const filtered = allRecords.filter(r =>
-                    (r.patient_name||'').toLowerCase().includes(search) ||
-                    (r.phone||'').includes(search)
-                );
-                document.getElementById('recordCount').textContent = allRecords.length;
-                const tbody = document.getElementById('tableBody');
-                const empty = document.getElementById('emptyState');
-                if (filtered.length === 0) {
-                    tbody.innerHTML = '';
-                    empty.style.display = 'block';
-                    return;
-                }
-                empty.style.display = 'none';
-                tbody.innerHTML = filtered.map((r, i) => `
-                    <tr onclick="window._viewDetail(${r.id})">
-                        <td>${i+1}</td><td><strong>${escapeHtml(r.patient_name)}</strong></td>
-                        <td>${r.gender}</td><td>${r.age}</td><td>${r.phone}</td>
-                        <td>${r.check_in_date}</td><td>${r.stay_duration||''}</td>
-                        <td>${r.has_infectious_disease==='有' ? '<span class="badge badge-yes">有</span>' : '<span class="badge badge-no">无</span>'}</td>
-                        <td>${new Date(r.created_at).toLocaleString()}</td>
-                        <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();window._confirmDelete(${r.id})">🗑</button></td>
-                    </tr>
-                `).join('');
-            }
-
-            function viewDetail(id) {
-                const r = allRecords.find(x => x.id === id);
-                if (!r) return;
-                document.getElementById('detailContent').innerHTML = `
-                    <button class="modal-close" onclick="document.getElementById('detailModal').classList.add('admin-hidden')">✕</button>
-                    <h3>记录详情</h3>
-                    <div class="detail-row"><span class="detail-label">姓名</span><span class="detail-value">${escapeHtml(r.patient_name)}</span></div>
-                    <div class="detail-row"><span class="detail-label">性别</span><span class="detail-value">${r.gender}</span></div>
-                    <div class="detail-row"><span class="detail-label">年龄</span><span class="detail-value">${r.age}岁</span></div>
-                    <div class="detail-row"><span class="detail-label">住址</span><span class="detail-value">${escapeHtml(r.address)}</span></div>
-                    <div class="detail-row"><span class="detail-label">电话</span><span class="detail-value">${r.phone}</span></div>
-                    <div class="detail-row"><span class="detail-label">入住时间</span><span class="detail-value">${r.check_in_date}</span></div>
-                    <div class="detail-row"><span class="detail-label">时长</span><span class="detail-value">${r.stay_duration||''}</span></div>
-                    <div class="detail-row"><span class="detail-label">传染性疾病</span><span class="detail-value">${r.has_infectious_disease}${r.disease_detail?' - '+escapeHtml(r.disease_detail):''}</span></div>
-                    <button class="btn btn-danger btn-sm" onclick="window._confirmDelete(${r.id});document.getElementById('detailModal').classList.add('admin-hidden')">删除</button>
-                `;
-                document.getElementById('detailModal').classList.remove('admin-hidden');
-            }
-
-            async function confirmDelete(id) {
-                if (!confirm('确定删除？')) return;
-                try {
-                    if (supabase) await supabase.from('patient_records').delete().eq('id', id);
-                    else {
-                        let local = JSON.parse(localStorage.getItem('patient_records') || '[]');
-                        local = local.filter(r => r.id !== id);
-                        localStorage.setItem('patient_records', JSON.stringify(local));
-                    }
-                    showToast('已删除','info');
-                    await refreshRecords();
-                } catch(e) { showToast('删除失败','error'); }
-            }
-
-            function exportCSV() {
-                if (!allRecords.length) return showToast('无数据','error');
-                const headers = ['姓名','性别','年龄','电话','住址','入住时间','时长','传染性疾病','提交时间'];
-                const rows = allRecords.map(r => [r.patient_name, r.gender, r.age, r.phone, r.address, r.check_in_date, r.stay_duration, r.has_infectious_disease, new Date(r.created_at).toLocaleString()]);
-                const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-                const blob = new Blob([csv], {type:'text/csv'});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = '患者记录.csv';
-                a.click();
-                showToast('✅ 导出成功','success');
-            }
-
-            // 暴露到全局
-            window._viewDetail = viewDetail;
-            window._confirmDelete = confirmDelete;
-
-            // ==================== 事件绑定 ====================
-            document.addEventListener('DOMContentLoaded', function() {
-                generateQR();
-                setupUpload();
-                setupCondition();
-
-                document.getElementById('submitBtn').addEventListener('click', handleSubmit);
-                document.getElementById('newRecordBtn').addEventListener('click', resetForm);
-                document.getElementById('adminEntryBtn').addEventListener('click', showAdmin);
-                document.getElementById('backToFormBtn').addEventListener('click', showForm);
-                document.getElementById('loginBtn').addEventListener('click', adminLogin);
-                document.getElementById('logoutBtn').addEventListener('click', adminLogout);
-                document.getElementById('refreshBtn').addEventListener('click', refreshRecords);
-                document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
-                document.getElementById('searchInput').addEventListener('input', renderTable);
-
-                document.getElementById('checkInDate').value = new Date().toISOString().split('T')[0];
-            });
-        })();
+            };
+        };
     </script>
 </body>
 </html>
