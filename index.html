@@ -2,427 +2,1103 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">
     <title>患者信息登记系统</title>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 二维码生成库 -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         :root {
-            --primary: #4A90D9; --success: #52C41A; --danger: #E74C3C;
-            --bg: #f5f7fa; --card-bg: #ffffff; --text: #2c3e50;
-            --border: #e0e6ed; --radius: 12px;
+            --primary: #4A90D9;
+            --primary-dark: #357ABD;
+            --success: #52C41A;
+            --danger: #E74C3C;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-secondary: #666;
+            --border: #e0e6ed;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
-            background: var(--bg); color: var(--text);
-            min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+            font-family: var(--font-family);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             padding: 16px;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
         }
-        .nav-bar { width:100%; max-width:600px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-        .nav-logo { font-size:1.3rem; font-weight:700; color:var(--primary); }
-        .nav-link { font-size:0.9rem; padding:8px 16px; border-radius:20px; cursor:pointer; border:none; background:rgba(74,144,217,0.08); color:var(--primary); }
-        .nav-link.admin-link { background:transparent; color:#666; }
-        .qr-card { background:var(--card-bg); border-radius:var(--radius); padding:20px; max-width:600px; width:100%; margin-bottom:16px; text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
-        .qr-container { display:flex; justify-content:center; margin:10px 0; }
-        .card { background:var(--card-bg); border-radius:var(--radius); padding:24px; max-width:600px; width:100%; margin-bottom:16px; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
-        .card-header { text-align:center; margin-bottom:20px; padding-bottom:15px; border-bottom:2px solid #f0f4f8; }
-        .form-group { margin-bottom:16px; }
-        .form-label { display:block; font-weight:600; font-size:0.9rem; margin-bottom:6px; }
-        .form-label .required { color:var(--danger); }
-        .form-input, .form-textarea { width:100%; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:1rem; background:#fafbfc; outline:none; }
-        .form-input:focus, .form-textarea:focus { border-color:var(--primary); background:#fff; }
-        .form-textarea { resize:vertical; min-height:80px; }
-        .form-row { display:flex; gap:10px; }
-        .radio-group { display:flex; gap:10px; }
-        .radio-option { flex:1; }
-        .radio-option input { display:none; }
-        .radio-option label { display:flex; align-items:center; justify-content:center; padding:12px; border:2px solid var(--border); border-radius:10px; cursor:pointer; background:#fafbfc; text-align:center; }
-        .radio-option input:checked+label { border-color:var(--primary); background:#eef5fc; color:var(--primary); font-weight:700; }
-        .conditional-field { overflow:hidden; max-height:0; opacity:0; transition:all 0.3s; }
-        .conditional-field.visible { max-height:150px; opacity:1; margin-top:12px; }
-        .upload-area { border:2px dashed var(--border); border-radius:12px; padding:20px; text-align:center; cursor:pointer; background:#fafbfc; position:relative; }
-        .upload-area.has-file { border-color:var(--success); background:#f6fdf8; }
-        .upload-preview { max-width:100%; max-height:200px; border-radius:8px; margin-top:12px; display:none; }
-        .upload-preview.show { display:block; }
-        .upload-remove { display:none; margin-top:8px; color:var(--danger); cursor:pointer; }
-        .upload-remove.show { display:inline-block; }
-        .upload-area input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-        .btn { width:100%; padding:14px; font-size:1rem; font-weight:600; border-radius:10px; cursor:pointer; border:none; }
-        .btn-primary { background:var(--primary); color:#fff; }
-        .btn-primary:disabled { background:#b0cde8; cursor:not-allowed; }
-        .btn-outline { background:#fff; color:var(--primary); border:2px solid var(--primary); }
-        .btn-sm { padding:8px 16px; font-size:0.85rem; width:auto; }
-        .btn-danger { background:#fff; color:var(--danger); border:1px solid #fcc; }
-        .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:9999; padding:14px 24px; border-radius:10px; color:#fff; font-weight:600; animation:slideDown 0.3s; }
-        .toast.success { background:#27ae60; } .toast.error { background:#e74c3c; } .toast.info { background:#2c3e50; }
-        @keyframes slideDown { from{opacity:0;transform:translateX(-50%) translateY(-30px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
-        @keyframes fadeOut { from{opacity:1;} to{opacity:0;} }
-        .success-page { text-align:center; display:none; }
-        .admin-hidden { display:none !important; }
-        .table-wrapper { overflow-x:auto; border-radius:10px; border:1px solid var(--border); }
-        table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:700px; }
-        table th, table td { padding:10px; text-align:left; border-bottom:1px solid #eee; }
-        table th { background:#f8fafc; font-weight:700; }
-        table tbody tr:hover { background:#f8fafd; cursor:pointer; }
-        .badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
-        .badge-yes { background:#fff0f0; color:#c0392b; } .badge-no { background:#f0faf4; color:#27ae60; }
-        .detail-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center; }
-        .detail-modal { background:#fff; border-radius:16px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto; position:relative; }
-        .detail-row { display:flex; padding:8px 0; border-bottom:1px solid #f0f0f0; }
-        .detail-label { font-weight:600; min-width:80px; color:#666; }
-        .modal-close { position:absolute; top:10px; right:15px; font-size:1.5rem; cursor:pointer; background:none; border:none; }
-        .empty-state { text-align:center; padding:40px; color:#aaa; }
-        .toolbar { display:flex; gap:10px; margin-bottom:15px; }
-        .search-input { flex:1; padding:10px; border:2px solid var(--border); border-radius:10px; outline:none; }
+        .nav-bar {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 4px;
+        }
+        .nav-logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-logo .icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+        .nav-link {
+            font-size: 0.9rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(74, 144, 217, 0.08);
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+        }
+        .nav-link:hover {
+            background: rgba(74, 144, 217, 0.16);
+        }
+        .nav-link.admin-link {
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .nav-link.admin-link:hover {
+            color: var(--primary);
+        }
+        .qr-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .qr-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .qr-card .qr-container {
+            display: inline-block;
+            padding: 10px;
+            background: #fff;
+            border-radius: 12px;
+            border: 2px dashed var(--border);
+        }
+        .qr-hint {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .qr-url {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: #f0f4f8;
+            padding: 6px 12px;
+            border-radius: 20px;
+            word-break: break-all;
+            max-width: 100%;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px 20px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+        .card-header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f4f8;
+        }
+        .card-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .card-header .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .form-label .required {
+            color: var(--danger);
+            margin-left: 2px;
+        }
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: #fafbfc;
+            color: var(--text);
+            transition: var(--transition);
+            font-family: var(--font-family);
+            appearance: none;
+            -webkit-appearance: none;
+            outline: none;
+        }
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.08);
+        }
+        .form-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-hint {
+            font-size: 0.78rem;
+            color: #999;
+            margin-top: 4px;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .form-row .form-group.fixed-width {
+            flex: 0 0 auto;
+            min-width: 70px;
+        }
+        .form-row-separator {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            padding-bottom: 14px;
+        }
+        .radio-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .radio-option {
+            flex: 1;
+            min-width: 80px;
+        }
+        .radio-option input {
+            display: none;
+        }
+        .radio-option label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: #fafbfc;
+            text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .radio-option input:checked+label {
+            border-color: var(--primary);
+            background: #eef5fc;
+            color: var(--primary);
+            font-weight: 700;
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.06);
+        }
+        .conditional-field {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.35s ease, margin 0.3s ease;
+            margin-top: 0;
+        }
+        .conditional-field.visible {
+            max-height: 150px;
+            opacity: 1;
+            margin-top: 12px;
+        }
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: #fafbfc;
+            position: relative;
+            overflow: hidden;
+        }
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: #f8fafd;
+        }
+        .upload-area.has-file {
+            border-color: var(--success);
+            background: #f6fdf8;
+        }
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+        .upload-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .upload-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+        }
+        .upload-preview.show {
+            display: block;
+        }
+        .upload-remove {
+            display: none;
+            margin-top: 8px;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .upload-remove.show {
+            display: inline-block;
+        }
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            font-family: var(--font-family);
+            letter-spacing: 0.03em;
+            width: 100%;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(74, 144, 217, 0.3);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            background: #b0cde8;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-outline {
+            background: #fff;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            width: auto;
+        }
+        .btn-danger {
+            background: #fff;
+            color: var(--danger);
+            border: 1px solid #fcc;
+        }
+        .btn-danger:hover {
+            background: #fff5f5;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #fff;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.35s ease;
+            max-width: 90vw;
+            text-align: center;
+        }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: #2c3e50; }
+        @keyframes slideDown {
+            from { opacity:0; transform:translateX(-50%) translateY(-30px); }
+            to { opacity:1; transform:translateX(-50%) translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity:1; }
+            to { opacity:0; }
+        }
+        .success-icon {
+            width: 72px;
+            height: 72px;
+            background: #e8f8ee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 2.5rem;
+        }
+        .success-page {
+            text-align: center;
+            display: none;
+        }
+        .success-page h2 {
+            color: #27ae60;
+            margin-bottom: 8px;
+        }
+        .admin-hidden {
+            display: none !important;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 700px;
+        }
+        table th, table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+        table th {
+            background: #f8fafc;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            font-size: 0.8rem;
+        }
+        table tbody tr {
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        table tbody tr:hover { background: #f8fafd; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-yes { background: #fff0f0; color: #c0392b; }
+        .badge-no { background: #f0faf4; color: #27ae60; }
+        .detail-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .detail-modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 550px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .detail-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9rem;
+        }
+        .detail-label {
+            font-weight: 600;
+            min-width: 90px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .detail-value { flex: 1; color: var(--text); }
+        .detail-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            border: none;
+            background: transparent;
+        }
+        .modal-close:hover { background: #f5f5f5; color: #333; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #aaa; }
+        .empty-state .icon { font-size: 4rem; display: block; margin-bottom: 12px; }
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+        .search-input {
+            flex: 1;
+            min-width: 180px;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+            font-family: var(--font-family);
+        }
+        .search-input:focus { border-color: var(--primary); }
+        .record-count { font-weight: 700; color: var(--primary); font-size: 1.1rem; }
+        @media (max-width: 480px) {
+            .card { padding: 16px 14px; }
+            .card-header h1 { font-size: 1.3rem; }
+            .form-row { flex-direction: column; gap: 0; }
+            .form-row .form-group { margin-bottom: 14px; }
+            .form-row-separator { display: none; }
+            .radio-option label { padding: 10px 12px; font-size: 0.9rem; }
+            .btn { padding: 13px 20px; font-size: 0.95rem; }
+            .detail-modal { padding: 16px; border-radius: 12px; }
+        }
     </style>
 </head>
 <body>
 
+
+
+    <!-- ==================== 用户填写表单页面 ==================== -->
     <div id="formPage">
         <div class="nav-bar">
-            <div class="nav-logo">📋 患者登记</div>
-            <button class="nav-link admin-link" onclick="showAdmin()">🔐 管理后台</button>
+            <div class="nav-logo">
+                <span class="icon">📋</span>患者登记
+            </div>
+            <button class="nav-link admin-link" onclick="showAdminLogin()">🔐 管理后台</button>
         </div>
 
-        <div class="qr-card">
+        <!-- 二维码卡片 -->
+        <div class="qr-card" id="qrCard">
             <h3>📱 手机扫码填写</h3>
             <div class="qr-container" id="qrCodeContainer"></div>
-            <p style="font-size:0.8rem;color:#888;">扫描二维码打开登记表</p>
+            <div class="qr-hint">请使用手机相机或微信扫一扫<br>扫描二维码打开登记表</div>
+            <div class="qr-url" id="pageUrlDisplay"></div>
         </div>
 
+        <!-- 表单卡片 -->
         <div class="card" id="formCard">
             <div class="card-header">
                 <h1>📝 患者信息登记表</h1>
-                <p style="color:#666;">带 <span style="color:#E74C3C;">*</span> 为必填项</p>
+                <p class="subtitle">请如实填写以下信息，带 <span style="color:#E74C3C;">*</span> 为必填项</p>
             </div>
-            <form onsubmit="return false;">
+            <form id="patientForm" autocomplete="off">
                 <div class="form-group">
                     <label class="form-label">1. 患者姓名 <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="patientName" placeholder="请输入患者姓名">
+                    <input type="text" class="form-input" name="patientName" placeholder="请输入患者姓名" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">2. 患者性别 <span class="required">*</span></label>
                     <div class="radio-group">
-                        <div class="radio-option"><input type="radio" name="gender" value="男" id="genderMale"><label for="genderMale">👨 男</label></div>
-                        <div class="radio-option"><input type="radio" name="gender" value="女" id="genderFemale"><label for="genderFemale">👩 女</label></div>
+                        <div class="radio-option">
+                            <input type="radio" name="gender" value="男" id="genderMale" required>
+                            <label for="genderMale">👨 男</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="gender" value="女" id="genderFemale" required>
+                            <label for="genderFemale">👩 女</label>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">3. 患者年龄 <span class="required">*</span></label>
-                    <input type="number" class="form-input" id="age" placeholder="请输入年龄">
+                    <input type="number" class="form-input" name="age" placeholder="请输入年龄" required min="0" max="150" step="1">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">4. 民族</label>
-                    <input type="text" class="form-input" id="ethnicity" placeholder="例如：汉族">
+                    <label class="form-label">4. 民&nbsp;&nbsp;&nbsp;&nbsp;族</label>
+                    <input type="text" class="form-input" name="ethnicity" placeholder="例如：汉族">
                 </div>
                 <div class="form-group">
                     <label class="form-label">5. 家庭住址 <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="address" placeholder="xx省xx市xx县">
+                    <input type="text" class="form-input" name="address" placeholder="xx省xx市xx县" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">6. 联系电话 <span class="required">*</span></label>
-                    <input type="tel" class="form-input" id="phone" placeholder="请输入手机号码">
+                    <input type="tel" class="form-input" name="phone" placeholder="请输入手机号码" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">7. 入住时间 <span class="required">*</span></label>
-                    <input type="date" class="form-input" id="checkInDate">
+                    <input type="date" class="form-input" name="checkInDate" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">8. 入住时长 <span class="required">*</span></label>
                     <div class="form-row">
-                        <input type="number" class="form-input" id="stayMonths" placeholder="月" min="0" style="flex:1;text-align:center;">
-                        <span style="padding:10px;">—</span>
-                        <input type="number" class="form-input" id="stayDays" placeholder="天" min="0" max="31" style="flex:1;text-align:center;">
+                        <div class="form-group fixed-width">
+                            <input type="number" class="form-input" name="stayMonths" placeholder="月" required min="0" style="text-align:center;">
+                            <span class="form-hint" style="text-align:center;">月</span>
+                        </div>
+                        <span class="form-row-separator" style="padding-bottom:20px;">—</span>
+                        <div class="form-group fixed-width">
+                            <input type="number" class="form-input" name="stayDays" placeholder="天" required min="0" max="31" style="text-align:center;">
+                            <span class="form-hint" style="text-align:center;">天</span>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">9. 入住人数 <span class="required">*</span></label>
-                    <input type="number" class="form-input" id="occupancyCount" placeholder="请输入入住人数">
+                    <input type="number" class="form-input" name="occupancyCount" placeholder="请输入入住人数" required min="1">
                 </div>
                 <div class="form-group">
                     <label class="form-label">10. 有无传染性疾病 <span class="required">*</span></label>
                     <div class="radio-group">
-                        <div class="radio-option"><input type="radio" name="hasDisease" value="无" id="diseaseNo" checked><label for="diseaseNo">✅ 无</label></div>
-                        <div class="radio-option"><input type="radio" name="hasDisease" value="有" id="diseaseYes"><label for="diseaseYes">⚠️ 有</label></div>
+                        <div class="radio-option">
+                            <input type="radio" name="hasInfectiousDisease" value="无" id="diseaseNo" required checked>
+                            <label for="diseaseNo">✅ 无</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" name="hasInfectiousDisease" value="有" id="diseaseYes" required>
+                            <label for="diseaseYes">⚠️ 有</label>
+                        </div>
                     </div>
                     <div class="conditional-field" id="diseaseDetailField">
-                        <textarea class="form-textarea" id="diseaseDetail" placeholder="请具体填写传染性疾病名称..."></textarea>
+                        <textarea class="form-textarea" name="diseaseDetail" placeholder="请具体填写传染性疾病名称及相关情况..."></textarea>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">11. 诊断证明（拍照上传）</label>
                     <div class="upload-area" id="uploadArea">
-                        <input type="file" id="diagnosisFile" accept="image/*">
-                        <div>📸</div>
-                        <div>点击拍照或选择图片</div>
-                        <img class="upload-preview" id="uploadPreview">
-                        <span class="upload-remove" id="uploadRemove">✕ 移除</span>
+                        <input type="file" id="diagnosisFile" accept="image/*" capture="environment">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-text">点击此处拍照或选择图片上传</div>
+                        <img class="upload-preview" id="uploadPreview" alt="预览">
+                        <span class="upload-remove" id="uploadRemove">✕ 移除图片</span>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary" id="submitBtn" onclick="handleSubmit()">📤 提交信息</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">📤 提交信息</button>
             </form>
         </div>
 
+        <!-- 成功页面 -->
         <div class="card success-page" id="successPage">
-            <div style="font-size:3rem;">✅</div>
+            <div class="success-icon">✅</div>
             <h2>提交成功！</h2>
-            <p>患者信息已登记</p>
+            <p>患者信息已成功登记，感谢您的配合。</p>
             <button class="btn btn-outline" onclick="resetForm()">📝 填写新记录</button>
         </div>
+
+        <p style="text-align:center;color:#bbb;font-size:0.75rem;margin-top:8px;">
+            数据安全存储于 Supabase · 仅管理员可查看
+        </p>
     </div>
 
+    <!-- ==================== 管理后台页面 ==================== -->
     <div id="adminPage" class="admin-hidden">
         <div class="nav-bar">
-            <div class="nav-logo">⚙️ 管理后台</div>
-            <button class="nav-link admin-link" onclick="showForm()">📝 返回</button>
+            <div class="nav-logo">
+                <span class="icon">⚙️</span>管理后台
+            </div>
+            <button class="nav-link admin-link" onclick="goToForm()">📝 返回登记表</button>
         </div>
+
         <div class="card" id="adminLoginCard">
-            <h1 style="text-align:center;">🔐 管理员登录</h1>
-            <div class="form-group"><input type="password" class="form-input" id="adminPassword" placeholder="请输入密码"></div>
-            <button class="btn btn-primary" onclick="adminLogin()">🔓 登录</button>
+            <div class="card-header">
+                <h1>🔐 管理员登录</h1>
+                <p class="subtitle">请输入管理员密码以查看数据</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">管理员密码</label>
+                <input type="password" class="form-input" id="adminPassword" placeholder="请输入密码">
+            </div>
+            <button class="btn btn-primary" onclick="adminLogin()">🔓 登 录</button>
         </div>
+
         <div class="card admin-hidden" id="adminPanel">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                <div><h2>📊 患者记录</h2><p>共 <span id="recordCount">0</span> 条（本地存储）</p></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
                 <div>
+                    <h2 style="font-size:1.2rem;">📊 患者登记记录</h2>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);">共 <span class="record-count" id="recordCount">0</span> 条记录（Supabase云端存储）</p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
                     <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 导出CSV</button>
                     <button class="btn btn-outline btn-sm" onclick="refreshRecords()">🔄 刷新</button>
                     <button class="btn btn-danger btn-sm" onclick="adminLogout()">🚪 退出</button>
                 </div>
             </div>
-            <div class="toolbar"><input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索..." oninput="renderTable()"></div>
-            <div class="table-wrapper">
+            <div class="toolbar">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索姓名、电话、地址..." oninput="renderTable()">
+            </div>
+            <div class="table-wrapper" id="tableWrapper">
                 <table>
-                    <thead><tr><th>#</th><th>姓名</th><th>性别</th><th>年龄</th><th>电话</th><th>入住时间</th><th>时长</th><th>传染</th><th>提交时间</th><th>操作</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>年龄</th>
+                            <th>电话</th>
+                            <th>入住时间</th>
+                            <th>入住时长</th>
+                            <th>传染疾病</th>
+                            <th>提交时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
-                <div class="empty-state" id="emptyState">📭 暂无记录</div>
+                <div class="empty-state" id="emptyState">
+                    <span class="icon">📭</span>
+                    <p>暂无记录</p>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- 详情弹窗 -->
     <div class="detail-modal-overlay admin-hidden" id="detailModal" onclick="if(event.target===this)closeDetail()">
         <div class="detail-modal" id="detailContent"></div>
     </div>
+
     <div id="toastContainer"></div>
 
     <script>
-        const ADMIN_PASSWORD = 'admin2024';
+        // ==================== 配置 Supabase ====================
+ 	const SUPABASE_URL = 'https://bvmvuirjmlsbuefnsvm.supabase.co';   // 替换为你的 Supabase URL  已完成替换
+        const SUPABASE_ANON_KEY = sb_publishable__J9jNEj_RmSoKegqreOEQw_cGPCozvg';                    // 替换为你的 anon key   已完成替换
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const ADMIN_PASSWORD = 'admin2026';
         let uploadedFile = null;
         let allRecords = [];
 
-        // 数据存储
-        function getRecords() {
-            try { return JSON.parse(localStorage.getItem('patient_records') || '[]'); }
-            catch(e) { return []; }
+        // ==================== Toast 提示 ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s ease forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 2500);
         }
 
-        function saveRecords(records) {
-            localStorage.setItem('patient_records', JSON.stringify(records));
-        }
-
-        // 初始化
-        (function init() {
-            generateQR();
-            setupCondition();
-            setupUpload();
-            var dateEl = document.getElementById('checkInDate');
-            if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
-        })();
-
-        function showToast(msg, type) {
-            var c = document.getElementById('toastContainer');
-            var t = document.createElement('div');
-            t.className = 'toast ' + type;
-            t.textContent = msg;
-            c.appendChild(t);
-            setTimeout(function() { t.style.animation = 'fadeOut 0.4s forwards'; setTimeout(function() { t.remove(); }, 400); }, 2500);
-        }
-
-        function escapeHtml(str) {
-            var d = document.createElement('div');
-            d.textContent = str || '';
-            return d.innerHTML;
-        }
-
-        function generateQR() {
-            var qr = document.getElementById('qrCodeContainer');
-            if (qr && typeof QRCode !== 'undefined') {
-                qr.innerHTML = '';
-                new QRCode(qr, { text: window.location.href.split('?')[0], width: 150, height: 150 });
+        // ==================== 二维码生成 ====================
+        function generateQRCode() {
+            const url = window.location.href;
+            document.getElementById('pageUrlDisplay').textContent = url;
+            const qrContainer = document.getElementById('qrCodeContainer');
+            if (qrContainer && typeof QRCode !== 'undefined') {
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: url,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#2c3e50',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
             }
         }
 
-        function setupUpload() {
-            var fi = document.getElementById('diagnosisFile');
-            var prev = document.getElementById('uploadPreview');
-            var area = document.getElementById('uploadArea');
-            var rm = document.getElementById('uploadRemove');
-            if (!fi || !prev || !area || !rm) return;
-            fi.addEventListener('change', function(e) {
-                var file = e.target.files[0];
-                if (!file || !file.type.startsWith('image/')) return;
-                if (file.size > 10*1024*1024) return showToast('图片不能超过10MB','error');
+        // ==================== 图片上传 ====================
+        function setupImageUpload() {
+            const fileInput = document.getElementById('diagnosisFile');
+            const preview = document.getElementById('uploadPreview');
+            const uploadArea = document.getElementById('uploadArea');
+            const removeBtn = document.getElementById('uploadRemove');
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) {
+                    showToast('请上传图片格式文件', 'error');
+                    fileInput.value = '';
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast('图片大小不能超过10MB', 'error');
+                    fileInput.value = '';
+                    return;
+                }
                 uploadedFile = file;
-                var reader = new FileReader();
-                reader.onload = function(ev) { prev.src = ev.target.result; prev.classList.add('show'); area.classList.add('has-file'); rm.classList.add('show'); };
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    preview.src = ev.target.result;
+                    preview.classList.add('show');
+                    uploadArea.classList.add('has-file');
+                    removeBtn.classList.add('show');
+                };
                 reader.readAsDataURL(file);
             });
-            rm.addEventListener('click', function(e) { e.stopPropagation(); uploadedFile = null; prev.src = ''; prev.classList.remove('show'); area.classList.remove('has-file'); rm.classList.remove('show'); fi.value = ''; });
-        }
 
-        function setupCondition() {
-            var yes = document.getElementById('diseaseYes');
-            var no = document.getElementById('diseaseNo');
-            var field = document.getElementById('diseaseDetailField');
-            if (!yes || !no || !field) return;
-            function toggle() { field.classList.toggle('visible', yes.checked); }
-            yes.addEventListener('change', toggle);
-            no.addEventListener('change', toggle);
-        }
-
-        function handleSubmit() {
-            var patientName = document.getElementById('patientName').value.trim();
-            var gender = document.querySelector('input[name="gender"]:checked');
-            gender = gender ? gender.value : null;
-            var age = parseInt(document.getElementById('age').value);
-            var ethnicity = document.getElementById('ethnicity').value.trim();
-            var address = document.getElementById('address').value.trim();
-            var phone = document.getElementById('phone').value.trim();
-            var checkInDate = document.getElementById('checkInDate').value;
-            var stayMonths = parseInt(document.getElementById('stayMonths').value) || 0;
-            var stayDays = parseInt(document.getElementById('stayDays').value) || 0;
-            var occupancyCount = parseInt(document.getElementById('occupancyCount').value) || 1;
-            var hasDisease = document.querySelector('input[name="hasDisease"]:checked');
-            hasDisease = hasDisease ? hasDisease.value : '无';
-            var diseaseDetail = document.getElementById('diseaseDetail').value.trim();
-
-            if (!patientName) return showToast('请输入患者姓名', 'error');
-            if (!gender) return showToast('请选择性别', 'error');
-            if (!age || age < 0 || age > 150) return showToast('请输入有效年龄', 'error');
-            if (!address) return showToast('请输入家庭住址', 'error');
-            if (!phone || !/^[0-9\-]{7,15}$/.test(phone)) return showToast('请输入有效电话', 'error');
-            if (!checkInDate) return showToast('请选择入住时间', 'error');
-            if (hasDisease === '有' && !diseaseDetail) return showToast('请填写疾病详情', 'error');
-
-            var btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = '提交中...';
-
-            setTimeout(function() {
-                var records = getRecords();
-                records.unshift({
-                    id: Date.now(),
-                    patient_name: patientName, gender: gender, age: age, ethnicity: ethnicity,
-                    address: address, phone: phone, check_in_date: checkInDate,
-                    stay_months: stayMonths, stay_days: stayDays, stay_duration: stayMonths + '月' + stayDays + '天',
-                    occupancy_count: occupancyCount, has_infectious_disease: hasDisease,
-                    disease_detail: hasDisease === '有' ? diseaseDetail : '',
-                    createdAt: new Date().toISOString()
-                });
-                saveRecords(records);
-
-                showToast('✅ 提交成功！', 'success');
-                document.getElementById('formCard').style.display = 'none';
-                document.getElementById('successPage').style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = '📤 提交信息';
-            }, 300);
-        }
-
-        function resetForm() {
-            ['patientName','age','ethnicity','address','phone','stayMonths','stayDays','occupancyCount','diseaseDetail'].forEach(function(id) {
-                var el = document.getElementById(id); if (el) el.value = '';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                clearImage();
             });
-            document.getElementById('checkInDate').value = new Date().toISOString().split('T')[0];
-            document.querySelectorAll('input[type="radio"]').forEach(function(r) { r.checked = false; });
-            document.getElementById('diseaseNo').checked = true;
-            document.getElementById('diseaseDetailField').classList.remove('visible');
+        }
+
+        function clearImage() {
             uploadedFile = null;
-            var prev = document.getElementById('uploadPreview'); prev.src = ''; prev.classList.remove('show');
+            document.getElementById('uploadPreview').src = '';
+            document.getElementById('uploadPreview').classList.remove('show');
             document.getElementById('uploadArea').classList.remove('has-file');
             document.getElementById('uploadRemove').classList.remove('show');
             document.getElementById('diagnosisFile').value = '';
+        }
+
+        // ==================== 传染性疾病条件显示 ====================
+        function setupConditionalFields() {
+            const yes = document.getElementById('diseaseYes');
+            const no = document.getElementById('diseaseNo');
+            const field = document.getElementById('diseaseDetailField');
+            function toggle() {
+                if (yes.checked) field.classList.add('visible');
+                else field.classList.remove('visible');
+            }
+            yes.addEventListener('change', toggle);
+            no.addEventListener('change', toggle);
+            toggle();
+        }
+
+        // ==================== 表单提交 ====================
+        async function submitForm(e) {
+            e.preventDefault();
+            const form = document.getElementById('patientForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // 基本验证
+            if (!data.patientName?.trim()) return showToast('请输入患者姓名', 'error');
+            if (!data.gender) return showToast('请选择性别', 'error');
+            if (!data.age || parseInt(data.age) < 0 || parseInt(data.age) > 150) return showToast('请输入有效年龄', 'error');
+            if (!data.address?.trim()) return showToast('请输入家庭住址', 'error');
+            if (!data.phone || !/^[0-9\-]{7,15}$/.test(data.phone)) return showToast('请输入有效联系电话', 'error');
+            if (!data.checkInDate) return showToast('请选择入住时间', 'error');
+            if (!data.stayMonths || parseInt(data.stayMonths) < 0) return showToast('请输入入住时长（月）', 'error');
+            if (!data.stayDays || parseInt(data.stayDays) < 0 || parseInt(data.stayDays) > 31) return showToast('请输入有效入住天数', 'error');
+            if (!data.occupancyCount || parseInt(data.occupancyCount) < 1) return showToast('请输入入住人数', 'error');
+            if (!data.hasInfectiousDisease) return showToast('请选择有无传染性疾病', 'error');
+            if (data.hasInfectiousDisease === '有' && !data.diseaseDetail?.trim()) return showToast('请填写具体疾病信息', 'error');
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+
+            try {
+                let imageUrl = null;
+                // 上传图片到 Supabase Storage
+                if (uploadedFile) {
+                    const fileName = `diagnosis_${Date.now()}_${uploadedFile.name}`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('diagnosis_images')
+                        .upload(fileName, uploadedFile);
+                    if (uploadError) throw uploadError;
+                    const { data: urlData } = supabase.storage
+                        .from('diagnosis_images')
+                        .getPublicUrl(fileName);
+                    imageUrl = urlData.publicUrl;
+                }
+
+                // 插入数据库
+                const stayMonths = parseInt(data.stayMonths) || 0;
+                const stayDays = parseInt(data.stayDays) || 0;
+                const { error: insertError } = await supabase
+                    .from('patient_records')
+                    .insert({
+                        patient_name: data.patientName.trim(),
+                        gender: data.gender,
+                        age: parseInt(data.age),
+                        ethnicity: (data.ethnicity || '').trim(),
+                        address: data.address.trim(),
+                        phone: data.phone.trim(),
+                        check_in_date: data.checkInDate,
+                        stay_months: stayMonths,
+                        stay_days: stayDays,
+                        stay_duration: `${stayMonths}月${stayDays}天`,
+                        occupancy_count: parseInt(data.occupancyCount),
+                        has_infectious_disease: data.hasInfectiousDisease,
+                        disease_detail: data.hasInfectiousDisease === '有' ? (data.diseaseDetail || '').trim() : '',
+                        diagnosis_image_url: imageUrl
+                    });
+                if (insertError) throw insertError;
+
+                showToast('✅ 信息提交成功！', 'success');
+                document.getElementById('formCard').style.display = 'none';
+                document.getElementById('successPage').style.display = 'block';
+            } catch (error) {
+                console.error('提交失败:', error);
+                showToast('提交失败：' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '📤 提交信息';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('patientForm').reset();
+            clearImage();
+            document.getElementById('diseaseDetailField').classList.remove('visible');
             document.getElementById('formCard').style.display = 'block';
             document.getElementById('successPage').style.display = 'none';
         }
 
-        function showAdmin() { document.getElementById('formPage').classList.add('admin-hidden'); document.getElementById('adminPage').classList.remove('admin-hidden'); }
-        function showForm() { document.getElementById('adminPage').classList.add('admin-hidden'); document.getElementById('formPage').classList.remove('admin-hidden'); }
+        // ==================== 管理后台 ====================
+        function showAdminLogin() {
+            document.getElementById('formPage').classList.add('admin-hidden');
+            document.getElementById('adminPage').classList.remove('admin-hidden');
+        }
+
+        function goToForm() {
+            document.getElementById('adminPage').classList.add('admin-hidden');
+            document.getElementById('formPage').classList.remove('admin-hidden');
+        }
 
         function adminLogin() {
-            if (document.getElementById('adminPassword').value === ADMIN_PASSWORD) {
+            const pwd = document.getElementById('adminPassword').value;
+            if (pwd === ADMIN_PASSWORD) {
                 document.getElementById('adminLoginCard').classList.add('admin-hidden');
                 document.getElementById('adminPanel').classList.remove('admin-hidden');
                 refreshRecords();
-            } else showToast('密码错误','error');
+            } else {
+                showToast('密码错误', 'error');
+            }
         }
 
-        function adminLogout() { document.getElementById('adminLoginCard').classList.remove('admin-hidden'); document.getElementById('adminPanel').classList.add('admin-hidden'); }
+        function adminLogout() {
+            document.getElementById('adminLoginCard').classList.remove('admin-hidden');
+            document.getElementById('adminPanel').classList.add('admin-hidden');
+            document.getElementById('adminPassword').value = '';
+        }
 
-        function refreshRecords() {
-            allRecords = getRecords();
-            renderTable();
-            showToast('数据已刷新','info');
+        async function fetchRecords() {
+            const { data, error } = await supabase
+                .from('patient_records')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        }
+
+        async function refreshRecords() {
+            try {
+                allRecords = await fetchRecords();
+                renderTable();
+                showToast('数据已刷新', 'info');
+            } catch (e) {
+                showToast('加载失败：' + e.message, 'error');
+            }
         }
 
         function renderTable() {
-            var search = (document.getElementById('searchInput')?.value || '').toLowerCase();
-            var filtered = allRecords.filter(function(r) {
-                return (r.patient_name||'').toLowerCase().includes(search) || (r.phone||'').includes(search);
-            });
+            const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const filtered = allRecords.filter(r =>
+                r.patient_name?.toLowerCase().includes(search) ||
+                r.phone?.includes(search) ||
+                r.address?.toLowerCase().includes(search)
+            );
             document.getElementById('recordCount').textContent = allRecords.length;
-            var tbody = document.getElementById('tableBody'), empty = document.getElementById('emptyState');
-            if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-            empty.style.display = 'none';
-            tbody.innerHTML = filtered.map(function(r, i) {
-                return '<tr onclick="viewDetail(' + r.id + ')"><td>' + (i+1) + '</td><td><strong>' + escapeHtml(r.patient_name) + '</strong></td><td>' + r.gender + '</td><td>' + r.age + '</td><td>' + r.phone + '</td><td>' + r.check_in_date + '</td><td>' + (r.stay_duration||'') + '</td><td>' + (r.has_infectious_disease==='有' ? '<span class="badge badge-yes">有</span>' : '<span class="badge badge-no">无</span>') + '</td><td>' + new Date(r.createdAt).toLocaleString() + '</td><td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete(' + r.id + ')">🗑</button></td></tr>';
-            }).join('');
+            const tbody = document.getElementById('tableBody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+            document.getElementById('emptyState').style.display = 'none';
+            tbody.innerHTML = filtered.map((r, i) => `
+                <tr onclick="viewDetail(${r.id})">
+                    <td>${i + 1}</td>
+                    <td><strong>${escapeHtml(r.patient_name)}</strong></td>
+                    <td>${escapeHtml(r.gender)}</td>
+                    <td>${r.age}</td>
+                    <td>${escapeHtml(r.phone)}</td>
+                    <td>${r.check_in_date}</td>
+                    <td>${r.stay_duration || ''}</td>
+                    <td>${r.has_infectious_disease === '有' ? '<span class="badge badge-yes">有</span>' : '<span class="badge badge-no">无</span>'}</td>
+                    <td>${new Date(r.created_at).toLocaleString()}</td>
+                    <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();confirmDelete(${r.id})">🗑</button></td>
+                </tr>
+            `).join('');
         }
 
         function viewDetail(id) {
-            var r = allRecords.find(function(x) { return x.id === id; });
+            const r = allRecords.find(x => x.id === id);
             if (!r) return;
-            document.getElementById('detailContent').innerHTML = '<button class="modal-close" onclick="closeDetail()">✕</button><h3>记录详情</h3>' +
-                '<div class="detail-row"><span class="detail-label">姓名</span><span class="detail-value">' + escapeHtml(r.patient_name) + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">性别</span><span class="detail-value">' + r.gender + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">年龄</span><span class="detail-value">' + r.age + '岁</span></div>' +
-                '<div class="detail-row"><span class="detail-label">住址</span><span class="detail-value">' + escapeHtml(r.address) + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">电话</span><span class="detail-value">' + r.phone + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">入住时间</span><span class="detail-value">' + r.check_in_date + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">时长</span><span class="detail-value">' + (r.stay_duration||'') + '</span></div>' +
-                '<div class="detail-row"><span class="detail-label">传染性疾病</span><span class="detail-value">' + r.has_infectious_disease + (r.disease_detail?' - ' + escapeHtml(r.disease_detail):'') + '</span></div>' +
-                '<button class="btn btn-danger btn-sm" onclick="confirmDelete(' + r.id + ');closeDetail();">删除</button>';
+            document.getElementById('detailContent').innerHTML = `
+                <button class="modal-close" onclick="closeDetail()">✕</button>
+                <h3>📋 记录详情</h3>
+                <div class="detail-row"><span class="detail-label">患者姓名</span><span class="detail-value"><strong>${escapeHtml(r.patient_name)}</strong></span></div>
+                <div class="detail-row"><span class="detail-label">性别</span><span class="detail-value">${escapeHtml(r.gender)}</span></div>
+                <div class="detail-row"><span class="detail-label">年龄</span><span class="detail-value">${r.age} 岁</span></div>
+                <div class="detail-row"><span class="detail-label">民族</span><span class="detail-value">${escapeHtml(r.ethnicity || '未填写')}</span></div>
+                <div class="detail-row"><span class="detail-label">家庭住址</span><span class="detail-value">${escapeHtml(r.address)}</span></div>
+                <div class="detail-row"><span class="detail-label">联系电话</span><span class="detail-value">${escapeHtml(r.phone)}</span></div>
+                <div class="detail-row"><span class="detail-label">入住时间</span><span class="detail-value">${r.check_in_date}</span></div>
+                <div class="detail-row"><span class="detail-label">入住时长</span><span class="detail-value">${r.stay_duration || ''}</span></div>
+                <div class="detail-row"><span class="detail-label">入住人数</span><span class="detail-value">${r.occupancy_count} 人</span></div>
+                <div class="detail-row"><span class="detail-label">传染性疾病</span><span class="detail-value">${r.has_infectious_disease}${r.disease_detail ? ' —— ' + escapeHtml(r.disease_detail) : ''}</span></div>
+                <div class="detail-row"><span class="detail-label">提交时间</span><span class="detail-value">${new Date(r.created_at).toLocaleString()}</span></div>
+                <div class="detail-row">
+                    <span class="detail-label">诊断证明</span>
+                    <span class="detail-value">
+                        ${r.diagnosis_image_url ? `<img class="detail-image" src="${r.diagnosis_image_url}" alt="诊断证明" onclick="window.open(this.src)" title="点击查看大图">` : '未上传'}
+                    </span>
+                </div>
+                <div style="margin-top:16px;text-align:right;">
+                    <button class="btn btn-danger btn-sm" onclick="confirmDelete(${r.id});closeDetail();">🗑 删除此记录</button>
+                </div>
+            `;
             document.getElementById('detailModal').classList.remove('admin-hidden');
         }
 
-        function closeDetail() { document.getElementById('detailModal').classList.add('admin-hidden'); }
-
-        function confirmDelete(id) {
-            if (!confirm('确定删除？')) return;
-            var records = getRecords();
-            records = records.filter(function(r) { return r.id !== id; });
-            saveRecords(records);
-            showToast('已删除','info');
-            refreshRecords();
+        function closeDetail() {
+            document.getElementById('detailModal').classList.add('admin-hidden');
         }
 
+        async function confirmDelete(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            const { error } = await supabase.from('patient_records').delete().eq('id', id);
+            if (error) {
+                showToast('删除失败：' + error.message, 'error');
+            } else {
+                showToast('记录已删除', 'info');
+                await refreshRecords();
+            }
+        }
+
+        // ==================== CSV 导出 ====================
         function exportCSV() {
-            if (!allRecords.length) return showToast('无数据','error');
-            var headers = ['姓名','性别','年龄','电话','住址','入住时间','时长','传染性疾病','提交时间'];
-            var rows = allRecords.map(function(r) {
-                return [r.patient_name, r.gender, r.age, r.phone, r.address, r.check_in_date, r.stay_duration, r.has_infectious_disease, new Date(r.createdAt).toLocaleString()];
-            });
-            var csv = '\uFEFF' + [headers].concat(rows).map(function(row) {
-                return row.map(function(c) { return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
-            }).join('\n');
-            var blob = new Blob([csv], {type:'text/csv'});
-            var a = document.createElement('a');
+            if (!allRecords.length) return showToast('没有数据可导出', 'error');
+            const headers = ['姓名','性别','年龄','电话','住址','入住时间','入住时长','传染性疾病','提交时间'];
+            const rows = allRecords.map(r => [
+                r.patient_name,
+                r.gender,
+                r.age,
+                r.phone,
+                r.address,
+                r.check_in_date,
+                r.stay_duration,
+                r.has_infectious_disease,
+                new Date(r.created_at).toLocaleString()
+            ]);
+            const BOM = '\uFEFF';
+            const csvContent = BOM + [headers, ...rows].map(row => row.map(cell => {
+                const str = String(cell);
+                return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
+            }).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = '患者记录.csv';
+            a.download = `患者记录_${new Date().toISOString().slice(0,10)}.csv`;
             a.click();
-            showToast('✅ 导出成功','success');
+            showToast('✅ CSV导出成功！', 'success');
         }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ==================== 初始化 ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            generateQRCode();
+            setupImageUpload();
+            setupConditionalFields();
+            document.getElementById('patientForm').addEventListener('submit', submitForm);
+            document.querySelector('input[name="checkInDate"]').value = new Date().toISOString().split('T')[0];
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeDetail();
+        });
     </script>
 </body>
 </html>
